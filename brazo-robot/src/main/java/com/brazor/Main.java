@@ -7,8 +7,8 @@ import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.system.MemoryUtil.NULL;
 import org.lwjgl.system.MemoryStack;
 
-import com.brazor.Modelado.Camera;
-import com.brazor.Modelado.Robot;
+import com.brazor.Cliente.Camera;
+import com.brazor.Cliente.RobotRenderer;
 
 public class Main {
     
@@ -22,7 +22,7 @@ public class Main {
         if (window == NULL) throw new RuntimeException("Error al crear ventana");
 
         Camera camera = new Camera();
-        Robot robot = new Robot();
+        RobotRenderer robot = new RobotRenderer();
         
         // Conectar callbacks de la camara
         camera.registerCallbacks(window);
@@ -48,7 +48,7 @@ public class Main {
         while (!glfwWindowShouldClose(window)) {
             // Inputs
             camera.input(window);
-            robot.input(window);
+            //robot.input(window);
 
             // Render
             glClearColor(0.25f, 0.25f, 0.25f, 1.0f); // Gris

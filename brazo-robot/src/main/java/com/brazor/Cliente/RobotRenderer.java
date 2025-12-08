@@ -1,13 +1,17 @@
-package com.brazor.Modelado;
+package com.brazor.Cliente;
 
-import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
+import com.brazor.Modelado.GlutTools;
+import com.brazor.Modelado.RobotParts;
 
-public class Robot {
-    // Estado del robot
+public class RobotRenderer {
+    
+    public float base, hombro, codo, muneca1, muneca2, pinza; //Variables en la bd actualizables via red 
+    /* Estado del robot ya no los utilizaremos ahora estan por defecto en el servidor 
+    y se actualizan via red en la bd
     private float base = 0, hombro = 45, codo = -45;
     private float muneca1 = 0, muneca2 = 0;
-    private float pinzaApertura = 0.5f;
+    private float pinzaApertura = 0.5f;*/ 
 
     public void draw() {
         glPushMatrix();
@@ -73,13 +77,11 @@ public class Robot {
             glTranslatef(0, 0.15f, 0);
             glRotatef(muneca2, 1, 0, 0); // Flexion
             
-            RobotParts.dibujarPinza(pinzaApertura);
+            RobotParts.dibujarPinza(pinza);
 
         glPopMatrix();
     }
-
-
-    //Sigue en prueba
+    /*Sigue en prueba, posiblemente migremos esto al cliente para control local
     public void input(long window) {
         float s = 1.5f; 
         if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) 
@@ -118,5 +120,5 @@ public class Robot {
             return min; 
         if (v > max) return max; 
         return v;
-    }
+    }*/
 }

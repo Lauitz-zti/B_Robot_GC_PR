@@ -1,4 +1,4 @@
-package com.brazor.Modelado;
+package com.brazor.Cliente;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
@@ -31,7 +31,7 @@ public class Camera {
 
     // Procesa el mouse
     public void input(long window) {
-        // Zoom con rueda (Callback se configura en el Main, aquí solo ajustamos lógica si fuera polling)
+        // Zoom con rueda
         if (scroll) {
             double[] x = new double[1], y = new double[1];
             glfwGetCursorPos(window, x, y);
