@@ -1,4 +1,4 @@
-package com.brazor.Cliente;
+package com.brazor.GC;
 
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
