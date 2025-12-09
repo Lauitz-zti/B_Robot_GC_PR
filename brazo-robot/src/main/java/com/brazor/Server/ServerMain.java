@@ -14,5 +14,13 @@ public class ServerMain {
         // Iniciar el Gestor de Estado (Cerebro)
         RobotStateManager stateManager = new RobotStateManager(db);
 
+        //Iniciar Servidor Sockets
+        TcpServer tcpServer = new TcpServer(5000, stateManager);
+        tcpServer.start();
+        
+        //Iniciar Servidor Web (Puerto 8080)
+        RestServer webServer = new RestServer(8080, stateManager);
+        webServer.start();
+
     }
 }

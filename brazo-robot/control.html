@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mando Robot</title>
+    <style>
+        body { background: #222; color: orange; font-family: monospace; text-align: center; }
+        button { width: 100px; height: 60px; margin: 5px; font-size: 20px; border: none; border-radius: 5px; cursor: pointer; }
+        .p { background: #4CAF50; color: white; }
+        .n { background: #f44336; color: white; }
+        .ctrl { background: orange; color: black; width: 80%; }
+        #log { margin: 10px; padding: 10px; border: 1px solid #444; }
+    </style>
+</head>
+<body>
+    <h2>ROBOT CONTROL</h2>
+    <div id="log">Desconectado</div>
+    <button class="ctrl" onclick="pedir()">PEDIR CONTROL</button>
+    <hr>
+    <h3>BASE</h3> 
+    <button class="n" onclick="mv('base', 5)">
+    </button> 
+    <button class="p" onclick="mv('base', -5)">
+    </button>
+    <h3>HOMBRO</h3> <button class="p" onclick="mv('hombro', 5)">▲</button> <button class="n" onclick="mv('hombro', -5)">▼</button>
+    <h3>CODO</h3> <button class="p" onclick="mv('codo', 5)">▲</button> <button class="n" onclick="mv('codo', -5)">▼</button>
+    <script>
+        const API = "http://192.168.100.3/api";
+        function pedir() { 
+            fetch(API + "/permiso")
+                .then(r => r.text())
+                .then(t => document.getElementById("log").innerText = t); 
+        }
+        function mv(e, v) { 
+            fetch(`${API}/mover/${e}/${v}`)
+                .then(r => r.text())
+                .then(t => {
+                    if (t.includes("Acceder"))
+                        alert("Sin permiso"); 
+                });
+        }
+    </script>
+</body>
+</html>
