@@ -11,5 +11,8 @@ public class ServerMain {
         DataBaseService db = new DataBaseService();
         db.init();
 
+        // Iniciar el Gestor de Estado (Cerebro)
+        RobotStateManager stateManager = new RobotStateManager(db);
+
     }
 }
