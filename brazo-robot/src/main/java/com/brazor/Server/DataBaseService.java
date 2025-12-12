@@ -5,7 +5,7 @@ import java.sql.*;
 public class DataBaseService {
     private static final String DB_URL = "jdbc:postgresql://localhost:5432/Brazo_Robot";
     private static final String DB_USER = "postgres";
-    private static final String DB_PASS = "12345"; //Contraseña
+    private static final String DB_PASS = "12345";
 
     public void init() {
         try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASS)) {
@@ -15,7 +15,7 @@ public class DataBaseService {
         }
     }
 
-    public void SaveEstados(float base, float hombro, float codo, float m1, float m2, float pinza) {
+    public void saveState(float base, float hombro, float codo, float m1, float m2, float pinza, String ip) {
         new Thread(() -> {
             String sql = "INSERT INTO robot_state (base, hombro, codo, muneca1, muneca2, pinza) VALUES (?, ?, ?, ?, ?, ?)";
             try (Connection conn = DriverManager.getConnection(DB_URL, DB_USER, DB_PASS);

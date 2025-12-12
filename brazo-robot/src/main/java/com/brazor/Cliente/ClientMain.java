@@ -6,6 +6,7 @@ import org.lwjgl.system.MemoryStack;
 
 import com.brazor.GC.Camera;
 import com.brazor.GC.RobotRenderer;
+
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL13.*; 
@@ -14,10 +15,10 @@ import static org.lwjgl.system.MemoryUtil.NULL;
 public class ClientMain {
     
     public static void main(String[] args) {
-        //Objetos a llamar
+         //Objetos a llamar
         RobotRenderer robot = new RobotRenderer();
         NetworkClient network = new NetworkClient(robot);
-        InputHandler input = new InputHandler(network);
+        BRMovimiento movimiento = new BRMovimiento(network);
 
         //Conexion de red
         network.ConClientServer("localhost", 5000);
@@ -38,8 +39,7 @@ public class ClientMain {
 
         //CONFIGURACION OPENGL
         glEnable(GL_DEPTH_TEST);
-        glEnable(GL_LIGHTING); 
-        glEnable(GL_LIGHT0);
+        glEnable(GL_LIGHTING); glEnable(GL_LIGHT0);
         glEnable(GL_NORMALIZE); 
         glEnable(GL_MULTISAMPLE);
         glShadeModel(GL_SMOOTH);
@@ -54,8 +54,8 @@ public class ClientMain {
 
         //BUCLE PRINCIPAL
         while (!glfwWindowShouldClose(window)) {
-            // Inputs delegados al InputHandler
-            input.processInput(window);
+            // Inputs delegados al Movimiento del Brazo
+            movimiento.processInput(window);
             camera.input(window);
 
             // Render

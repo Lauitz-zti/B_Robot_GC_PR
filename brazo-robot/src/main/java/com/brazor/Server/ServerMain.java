@@ -15,12 +15,16 @@ public class ServerMain {
         RobotStateManager stateManager = new RobotStateManager(db);
 
         //Iniciar Servidor Sockets
-        TcpServer tcpServer = new TcpServer(5000, stateManager);
+        TcpServer tcpServer = new TcpServer(5000, stateManager); 
         tcpServer.start();
         
         //Iniciar Servidor Web (Puerto 8080)
         RestServer webServer = new RestServer(8080, stateManager);
-        webServer.start();
-
+        try {
+            webServer.start();
+            System.out.println("Servidor REST escuchando en puerto 8080");
+        } catch (IOException e) {
+            System.out.println("Error iniciando REST: " + e.getMessage());
+        }
     }
 }

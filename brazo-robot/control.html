@@ -8,36 +8,50 @@
         button { width: 100px; height: 60px; margin: 5px; font-size: 20px; border: none; border-radius: 5px; cursor: pointer; }
         .p { background: #4CAF50; color: white; }
         .n { background: #f44336; color: white; }
-        .ctrl { background: orange; color: black; width: 80%; }
-        #log { margin: 10px; padding: 10px; border: 1px solid #444; }
+        .ctrl { background: orange; color: black; width: 80%; font-weight: bold; }
+        #log { margin: 10px; padding: 10px; border: 1px solid #444; background: #000; color: #0f0; min-height: 20px;}
+        #error-box { color: red; display: none; margin-bottom: 10px; border: 1px solid red; padding: 5px;}
     </style>
 </head>
 <body>
     <h2>ROBOT CONTROL</h2>
+    
+    <div id="error-box"></div>
     <div id="log">Desconectado</div>
+
     <button class="ctrl" onclick="pedir()">PEDIR CONTROL</button>
     <hr>
-    <h3>BASE</h3> 
-    <button class="n" onclick="mv('base', 5)">
-    </button> 
-    <button class="p" onclick="mv('base', -5)">
-    </button>
+    <h3>BASE</h3> <button class="n" onclick="mv('base', 5)">◄</button> <button class="p" onclick="mv('base', -5)">►</button>
     <h3>HOMBRO</h3> <button class="p" onclick="mv('hombro', 5)">▲</button> <button class="n" onclick="mv('hombro', -5)">▼</button>
     <h3>CODO</h3> <button class="p" onclick="mv('codo', 5)">▲</button> <button class="n" onclick="mv('codo', -5)">▼</button>
+    
     <script>
-        const API = "http://192.168.100.3/api";
-        function pedir() { 
-            fetch(API + "/permiso")
-                .then(r => r.text())
-                .then(t => document.getElementById("log").innerText = t); 
+        const API = "http://192.168.100.3:8080/api";
+
+        function mostrarError(msg) {
+            const box = document.getElementById("error-box");
+            box.style.display = "block";
+            box.innerText = "⚠️ " + msg;
         }
-        function mv(e, v) { 
-            fetch(`${API}/mover/${e}/${v}`)
+
+        function pedir() { 
+            fetch(API + "/control")
                 .then(r => r.text())
                 .then(t => {
-                    if (t.includes("Acceder"))
-                        alert("Sin permiso"); 
-                });
+                    document.getElementById("log").innerText = t;
+                    document.getElementById("error-box").style.display = "none";
+                })
+                .catch(err => mostrarError("No se conecta al PC. Revisa IP y Firewall.\nDetalle: " + err));
+        }
+
+        function mv(e, v) { 
+            fetch(`${API}/move?axis=${e}&val=${v}`)
+                .then(r => r.text())
+                .then(t => { 
+                    if(t.includes("ACCESS")) alert("Sin permiso. Presiona PEDIR CONTROL."); 
+                    document.getElementById("error-box").style.display = "none";
+                })
+                .catch(err => mostrarError("Error enviando comando."));
         }
     </script>
 </body>

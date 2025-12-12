@@ -2,8 +2,8 @@ package com.brazor.Cliente;
 
 import java.io.*;
 import java.net.Socket;
-import com.brazor.GC.RobotRenderer;
 
+import com.brazor.GC.RobotRenderer;
 
 //Unicamente se encarga de conectar, escuchar al servidor y actualizar los datos del robot
 public class NetworkClient {
@@ -23,12 +23,13 @@ public class NetworkClient {
             out = new PrintWriter(socket.getOutputStream(), true);
             in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             connected = true;
-            System.out.println("Conectando al servidor (" + host + ":" + port + ") ...");
+            System.out.println("Conectando al servidor (" + host + ":" + port + ") <<<");
 
             // Iniciar hilo de escucha
             new Thread(this::listenLoop).start();
         } catch (IOException e) {
-            System.err.println("!!! ERROR DE RED: No se pudo conectar al servidor.");
+            System.err.println("!!!ERROR DE RED: No se pudo conectar al servidor.");
+            System.err.println("ServerMain esta corriendo?"); //Purbas de depuracion :)
         }
     }
 

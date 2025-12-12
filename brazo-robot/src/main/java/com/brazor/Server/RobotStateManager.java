@@ -1,16 +1,16 @@
 package com.brazor.Server;
 
-
 public class RobotStateManager {
     // ESTADO DEL ROBOT
     private float base = 0, hombro = 45, codo = -45, m1 = 0, m2 = 0, pinza = 0.5f;
     
-    //Concurrencia 
+    // CONTROL DE CONCURRENCIA
     private String clienteIPcont = null; //IP del cliente que actualmente tiene el control exclusivo
-    private long cmdAccepTime = 0; //ultimo comando aceptado
+    private long cmdAccepTime = 0;//ultimo comando aceptado
+    
 
-    private DataBaseService db;//A donde va diirigir los datos
-    public RobotStateManager(DataBaseService db) { //Almacena los dats para persistir el estado 
+    private DataBaseService db; //A donde va diirigir los datos
+    public RobotStateManager(DataBaseService db) { //Almacena los dats para persistir el estado
         this.db = db;
     }
 
@@ -19,21 +19,26 @@ public class RobotStateManager {
         // Timeout de 30 segundos
         if (System.currentTimeMillis() - cmdAccepTime > 30000) clienteIPcont = null;
 
-        //Gestion del Token
-        if (cmd.startsWith("Control")) {
+        //ACTUAIZACION DEL ESTADO DEL ROBOT 
+        if (cmd.equals("PING")) {
+        return getCsvState(); // Solo devuelve el estado, no valida tokens ni mueve nada
+    }
+
+        //Gestion del Token (control exclusivo)
+        if (cmd.startsWith("TAKE_CONTROL")) {
             if (clienteIPcont == null || clienteIPcont.equals(ip)) {
                 clienteIPcont = ip;
                 cmdAccepTime = System.currentTimeMillis();
-                return "Control aceptado";
+                return "CONTROL_GRANTED";
             }
-            return "Ocupado por: " + clienteIPcont;
+            return "BUSY_BY_" + clienteIPcont;
         }
 
         //Asignacion del cliente si se encuentra libre
         if (clienteIPcont == null) clienteIPcont = ip;
 
         // Verificar permiso
-        if (!clienteIPcont.equals(ip)) return "Accso denegado. Controlado por: " + clienteIPcont;
+        if (!clienteIPcont.equals(ip)) return "ACCESS_DENIED";
 
         cmdAccepTime = System.currentTimeMillis();
 
@@ -41,34 +46,33 @@ public class RobotStateManager {
 
         //Utilizamos lo que teniamos en 
         String[] parts = cmd.split(":");
-        if (parts.length < 2) 
-            return "error";
+        if (parts.length < 2) return "BAD_FORMAT";
         
         float val = Float.parseFloat(parts[1]);
         boolean cambio = false;
 
-        if (parts[0].equals("Mover_Base")){ 
-            base = clamp(base + val, -90, 90); cambio = true; 
-        }
-        if (parts[0].equals("Mover_Hombro")) {
+        if (parts[0].equals("MOVE_BASE")){
+             base = clamp(base + val, -90, 90); cambio = true; 
+            }
+        if (parts[0].equals("MOVE_HOMBRO")){ 
             hombro = clamp(hombro + val, -10, 135); cambio = true; 
         }
-        if (parts[0].equals("Mover_Codo")){ 
+        if (parts[0].equals("MOVE_CODO")){
             codo = clamp(codo + val, -120, 0); cambio = true; 
-        }
-        if (parts[0].equals("Mover_Mun1")){
+            }
+        if (parts[0].equals("MOVE_MUN1")){
             m1 = clamp(m1 + val, -90, 90); cambio = true; 
         }
-        if (parts[0].equals("Mover_Mun2")){
-            m2 = clamp(m2 + val, -45, 45); cambio = true; 
+        if (parts[0].equals("MOVE_MUN2")){
+            m2 = clamp(m2 + val, -45, 45); cambio = true;
         }
-        if (parts[0].equals("Mover_Pinza")){
-            pinza = clamp(pinza + val, 0, 1); cambio = true; 
+        if (parts[0].equals("MOVE_PINZA")){
+            pinza = clamp(pinza + val, 0, 1); cambio = true;
         }
 
         //Guardar en BD si hubo cambio
         if (cambio) {
-            db.SaveEstados(base, hombro, codo, m1, m2, pinza);
+            db.saveState(base, hombro, codo, m1, m2, pinza, ip);
         }
 
         return getCsvState();
