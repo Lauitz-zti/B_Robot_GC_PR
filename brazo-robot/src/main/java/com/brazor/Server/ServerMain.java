@@ -11,8 +11,11 @@ public class ServerMain {
         DataBaseService db = new DataBaseService();
         db.init();
 
+        //Puerto 6000 para broadcast
+        UdpSender udpSender = new UdpSender(6000);
+
         // Iniciar el Gestor de Estado (Cerebro)
-        RobotStateManager stateManager = new RobotStateManager(db);
+        RobotStateManager stateManager = new RobotStateManager(db, udpSender);
 
         //Iniciar Servidor Sockets
         TcpServer tcpServer = new TcpServer(5000, stateManager); 

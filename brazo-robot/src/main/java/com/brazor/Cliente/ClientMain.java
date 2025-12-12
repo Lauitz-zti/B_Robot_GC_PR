@@ -19,7 +19,10 @@ public class ClientMain {
         RobotRenderer robot = new RobotRenderer();
         NetworkClient network = new NetworkClient(robot);
         BRMovimiento movimiento = new BRMovimiento(network);
+        UdpListener udpListener = new UdpListener(robot, 6000); //ESCUCHAR actualizaciones rápidas (Servidor -> Pantalla)
+                                                                    // Escucha en el puerto 6000 donde el servidor hace el broadcast
 
+        udpListener.startListening();
         //Conexion de red
         network.ConClientServer("localhost", 5000);
 
@@ -78,6 +81,7 @@ public class ClientMain {
         
         //LIMPIEZA
         network.close();
+        udpListener.close();
         glfwTerminate();
     }
 }

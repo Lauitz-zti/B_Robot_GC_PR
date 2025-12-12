@@ -1,57 +1,163 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-    <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mando Robot</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mando Industrial</title>
     <style>
-        body { background: #222; color: orange; font-family: monospace; text-align: center; }
-        button { width: 100px; height: 60px; margin: 5px; font-size: 20px; border: none; border-radius: 5px; cursor: pointer; }
-        .p { background: #4CAF50; color: white; }
-        .n { background: #f44336; color: white; }
-        .ctrl { background: orange; color: black; width: 80%; font-weight: bold; }
-        #log { margin: 10px; padding: 10px; border: 1px solid #444; background: #000; color: #0f0; min-height: 20px;}
-        #error-box { color: red; display: none; margin-bottom: 10px; border: 1px solid red; padding: 5px;}
+        body { 
+            background-color: #1a1a1a; 
+            color: #ff9800; 
+            font-family: 'Courier New', monospace; 
+            text-align: center; 
+            margin: 0; padding: 10px;
+            user-select: none; /* Evita seleccionar texto al tocar rapido */
+        }
+        h2 { border-bottom: 2px solid #ff9800; padding-bottom: 10px; }
+        
+        /* Cajas de estado */
+        #log { 
+            background: #000; color: #0f0; 
+            padding: 10px; margin: 10px auto; 
+            border: 1px solid #333; font-weight: bold;
+            max-width: 400px;
+        }
+        #error-box { 
+            background: #300; color: #f55; 
+            padding: 10px; margin: 10px auto; 
+            border: 1px solid red; display: none;
+            max-width: 400px;
+        }
+
+        /* Botonera */
+        .panel { max-width: 400px; margin: 0 auto; }
+        .row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .label { width: 80px; font-weight: bold; text-align: left; }
+        
+        button { 
+            width: 90px; height: 50px; 
+            font-size: 20px; font-weight: bold;
+            border: none; border-radius: 5px; 
+            cursor: pointer; active: scale(0.95);
+            transition: background 0.1s;
+        }
+        
+        /* Colores de botones */
+        .btn-ctrl { background: #ff9800; color: #000; width: 100%; margin-bottom: 20px; }
+        .btn-pos { background: #4CAF50; color: white; } /* Verde (+) */
+        .btn-neg { background: #f44336; color: white; } /* Rojo (-) */
+        
+        button:active { filter: brightness(0.8); transform: translateY(2px); }
     </style>
 </head>
 <body>
+
     <h2>ROBOT CONTROL</h2>
     
     <div id="error-box"></div>
     <div id="log">Desconectado</div>
 
-    <button class="ctrl" onclick="pedir()">PEDIR CONTROL</button>
-    <hr>
-    <h3>BASE</h3> <button class="n" onclick="mv('base', 5)">◄</button> <button class="p" onclick="mv('base', -5)">►</button>
-    <h3>HOMBRO</h3> <button class="p" onclick="mv('hombro', 5)">▲</button> <button class="n" onclick="mv('hombro', -5)">▼</button>
-    <h3>CODO</h3> <button class="p" onclick="mv('codo', 5)">▲</button> <button class="n" onclick="mv('codo', -5)">▼</button>
-    
+    <div class="panel">
+        <button class="btn-ctrl" onclick="pedirControl()">PEDIR CONTROL</button>
+
+        <div class="row">
+            <span class="label">BASE</span>
+            <button class="btn-neg" onclick="mover('base', 5)">◄ IZQ</button>
+            <button class="btn-pos" onclick="mover('base', -5)">DER ►</button>
+        </div>
+
+        <div class="row">
+            <span class="label">HOMBRO</span>
+            <button class="btn-pos" onclick="mover('hombro', 5)">▲ SUBIR</button>
+            <button class="btn-neg" onclick="mover('hombro', -5)">▼ BAJAR</button>
+        </div>
+
+        <div class="row">
+            <span class="label">CODO</span>
+            <button class="btn-pos" onclick="mover('codo', 5)">▲ ARRIBA</button>
+            <button class="btn-neg" onclick="mover('codo', -5)">▼ ABAJO</button>
+        </div>
+
+        <div class="row">
+            <span class="label">MUÑECA</span>
+            <button class="btn-neg" onclick="mover('mun1', 5)">↺ GIRO</button>
+            <button class="btn-pos" onclick="mover('mun1', -5)">↻ GIRO</button>
+        </div>
+
+        <div class="row">
+            <span class="label">PINZA</span>
+            <button class="btn-pos" onclick="mover('pinza', 0.05)">ABRIR</button>
+            <button class="btn-neg" onclick="mover('pinza', -0.05)">CERRAR</button>
+        </div>
+    </div>
+
     <script>
-        const API = "http://192.168.100.3:8080/api";
+        const SERVER_IP = "192.168.100.3"; //IP del servidor (mi router)
+        const PORT = "8080";
+
+        const API_URL = `http://${SERVER_IP}:${PORT}/api`;
 
         function mostrarError(msg) {
             const box = document.getElementById("error-box");
             box.style.display = "block";
-            box.innerText = "⚠️ " + msg;
+            box.innerText = "⚠️" + msg;
+            setTimeout(() => box.style.display = "none", 5000);
         }
 
-        function pedir() { 
-            fetch(API + "/control")
-                .then(r => r.text())
-                .then(t => {
-                    document.getElementById("log").innerText = t;
-                    document.getElementById("error-box").style.display = "none";
-                })
-                .catch(err => mostrarError("No se conecta al PC. Revisa IP y Firewall.\nDetalle: " + err));
+        //Permitir tomar el control (Usa POST)
+        function pedirControl() {
+            document.getElementById("log").innerText = "Solicitando...";
+            
+            fetch(`${API_URL}/control?t=${Date.now()}`, {
+                method: 'POST' 
+            })
+            .then(response => {
+                if (!response.ok) throw new Error("Error HTTP: " + response.status);
+                return response.text();
+            })
+            .then(texto => {
+                document.getElementById("log").innerText = "Servidor: " + texto;
+                document.getElementById("error-box").style.display = "none";
+            })
+            .catch(err => {
+                mostrarError("Error de conexion. ¿Esta corriendo Servidor?");
+                console.error(err);
+            });
         }
 
-        function mv(e, v) { 
-            fetch(`${API}/move?axis=${e}&val=${v}`)
-                .then(r => r.text())
-                .then(t => { 
-                    if(t.includes("ACCESS")) alert("Sin permiso. Presiona PEDIR CONTROL."); 
+        //FUNCION PARA MOVER
+        function mover(eje, valor) {
+            // Limpieza de datos
+            const ejeSafe = encodeURIComponent(eje);
+            const valSafe = encodeURIComponent(valor);
+            
+            // Construimos la URL
+            const url = `${API_URL}/move?axis=${ejeSafe}&val=${valSafe}&t=${Date.now()}`;
+
+            // Imprimimos en consola para depurar
+            console.log("Enviando PUT a:", url);
+
+            fetch(url, {
+                method: 'PUT'
+            })
+            .then(response => {
+                if (!response.ok) throw new Error("Error HTTP: " + response.status);
+                return response.text();
+            })
+            .then(texto => {
+                if (texto.includes("ACCESS_DENIED")) {
+                    alert("⛔ ACCESO DENEGADO\nDebes presionar 'PEDIR CONTROL' primero.");
+                } else if (texto.includes("BUSY")) {
+                    mostrarError("Robot ocupado por otro usuario.");
+                } else {
+                    // Si todo sale bien, no molestamos al usuario, solo limpiamos errores
                     document.getElementById("error-box").style.display = "none";
-                })
-                .catch(err => mostrarError("Error enviando comando."));
+                }
+            })
+            .catch(err => {
+                mostrarError("Fallo al enviar comando.");
+                console.error(err);
+            });
         }
     </script>
 </body>

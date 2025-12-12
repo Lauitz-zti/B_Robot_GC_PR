@@ -10,8 +10,11 @@ public class RobotStateManager {
     
 
     private DataBaseService db; //A donde va diirigir los datos
-    public RobotStateManager(DataBaseService db) { //Almacena los dats para persistir el estado
+    private UdpSender udp; // Nuevo
+
+    public RobotStateManager(DataBaseService db, UdpSender udp) { //Almacena los dats para persistir el estado
         this.db = db;
+        this.udp = udp;
     }
 
     // Metodo sincronizado para evitar condiciones de carrera
@@ -73,6 +76,9 @@ public class RobotStateManager {
         //Guardar en BD si hubo cambio
         if (cambio) {
             db.saveState(base, hombro, codo, m1, m2, pinza, ip);
+
+            //Notificar por UDP (Tiempo Real - Requisito Faltante)
+            udp.broadcastState(getCsvState());
         }
 
         return getCsvState();
