@@ -11,8 +11,7 @@ public class UdpListener {
     public UdpListener(RobotRenderer robot, int port) {
         this.robot = robot;
         try {
-            // Escuchar en el puerto 6000 (donde envía el servidor)
-            socket = new DatagramSocket(port);
+            socket = new DatagramSocket(port);// Escuchar en el puerto 6000 (donde envia el servidor)
         } catch (SocketException e) {
             e.printStackTrace();
         }
@@ -21,15 +20,18 @@ public class UdpListener {
     public void startListening() {
         new Thread(() -> {
             byte[] buffer = new byte[1024];
-            System.out.println(">>> CLIENTE ESCUCHANDO UDP EN PUERTO 6000 <<<");
+            //System.out.println("CLIENTE ESCUCHANDO UDP EN PUERTO 6000"); 
             
             while (running) {
                 try {
                     DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-                    socket.receive(packet); // Se bloquea aquí hasta recibir algo
+                    socket.receive(packet); // Se bloquea aqui hasta recibir algo
                     
                     String msg = new String(packet.getData(), 0, packet.getLength());
-                    
+                    if (msg.equals("SESSION_START")) {
+                        ClientMain.despertar(); 
+                        continue;
+                    }
                     // Actualizar el robot inmediatamente
                     String[] parts = msg.split(",");
                     if (parts.length >= 6) {

@@ -8,13 +8,18 @@ public class RobotStateManager {
     private String clienteIPcont = null; //IP del cliente que actualmente tiene el control exclusivo
     private long cmdAccepTime = 0;//ultimo comando aceptado
     
-
     private DataBaseService db; //A donde va diirigir los datos
     private UdpSender udp; // Nuevo
 
     public RobotStateManager(DataBaseService db, UdpSender udp) { //Almacena los dats para persistir el estado
         this.db = db;
         this.udp = udp;
+    }
+
+    public void broadcastEvent(String msg) {
+        if (udp != null) {
+            udp.broadcastState(msg); // Reutilizamos el sender UDP para avisar que alguien se conecto
+        }
     }
 
     // Metodo sincronizado para evitar condiciones de carrera
@@ -46,7 +51,6 @@ public class RobotStateManager {
         cmdAccepTime = System.currentTimeMillis();
 
         //Procesar movimiento
-
         //Utilizamos lo que teniamos en 
         String[] parts = cmd.split(":");
         if (parts.length < 2) return "BAD_FORMAT";

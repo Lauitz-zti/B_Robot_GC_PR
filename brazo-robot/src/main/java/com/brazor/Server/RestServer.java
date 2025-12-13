@@ -30,7 +30,7 @@ public class RestServer {
         try (OutputStream os = ex.getResponseBody()) { os.write(bytes); }
     }
 
-    // Configura las cabeceras para que el navegador del celular no bloquee la petición
+    // Configura las cabeceras para que el navegador del celular no bloquee la peticion
     private void handleCORS(HttpExchange ex) {
         ex.getResponseHeaders().add("Access-Control-Allow-Origin", "*");
         ex.getResponseHeaders().add("Access-Control-Allow-Methods", "GET, POST, PUT, OPTIONS");
@@ -101,16 +101,34 @@ public class RestServer {
             return;
         }
 
-        // VALIDACION REST ESTRICTA: Solo aceptamos POST para "Crear" una sesion de control
-        if (!ex.getRequestMethod().equalsIgnoreCase("POST")) {
-            sendResponse(ex, "ERROR: METODO DEBE SER POST", 405);
-            return;
+        String ip = ex.getRemoteAddress().getAddress().getHostAddress();//La peticion llego al servidor
+        String method = ex.getRequestMethod();
+        
+        //CASO 1: POST (SOLICITAR CONTROL)
+        if (method.equalsIgnoreCase("POST")) {
+            System.out.println("Web-Control pedido por: " + ip);
+            String res = stateRobot.processCommand("TAKE_CONTROL", ip); // Verificamos si puede tener el control
+
+            //CAMBIO DE PANTALLA DE CARGA
+            // Si el control fue concedido, gritamos por UDP a la PC
+            if (res.equals("CONTROL_GRANTED") || res.equals("DEMO_STARTED")) {
+                //System.out.println("ACCESO CONCEDIDO A " + ip); //depuracion en consola
+                stateRobot.broadcastEvent("SESSION_START"); 
+            }
+            sendResponse(ex, res, 200);
         }
 
-        String ip = ex.getRemoteAddress().getAddress().getHostAddress();//La peticion llego al servidor
-        System.out.println("Web: Control pedido por: " + ip);
-        String res = stateRobot.processCommand("TAKE_CONTROL", ip); //Verificamos si puede tener el control
-        sendResponse(ex, res, 200);
+        //CASO 2: DELETE (SOLTAR CONTROL)
+        else if (method.equalsIgnoreCase("DELETE")) {
+            System.out.println("   [WEB] DELETE - Control liberado por: " + ip);
+            String res = stateRobot.processCommand("RELEASE_CONTROL", ip);
+            sendResponse(ex, res, 200);
+        }
+
+        //CASO 3: ERROR
+        else {
+            sendResponse(ex, "ERROR: METODO DEBE SER POST O DELETE", 405);
+        }
     }
 
 }

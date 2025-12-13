@@ -5,13 +5,27 @@ import static org.lwjgl.opengl.GL11.*;
 
 public class Camera {
     // Estado de la camara
+    //Agregando la animacion el brazo necesitamos cambiar la posicion y rotacion directamente
+    private float x = 0, y = 5, z = 10;
     public float angleX = 25.0f;
-    public float angleY = 45.0f;
-    public float distance = 9.0f;
+    public float angleY = 0.0f;
     
     // Variables para el mouse
+    public float distance = 9.0f;
     private double lastX = 0, lastY = 0;
     private boolean scroll = false;
+
+    // Setters para posicion y rotacion directa
+    public void setPosition(float x, float y, float z) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+    }
+    public void setRotation(float angleX, float angleY) {
+        this.angleX = angleX;
+        this.angleY = angleY;
+    }
+    
 
     // Aplica la transformacion de la camara (El "ojo")
     public void apply() {
