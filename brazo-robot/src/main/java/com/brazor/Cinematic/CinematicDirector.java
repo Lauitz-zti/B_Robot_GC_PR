@@ -9,8 +9,11 @@ public class CinematicDirector {
     private long startTime;
     private Camera camera;// Referencia a la camara para poder moverla
 
+    private int titleTextureID = -1; //para guardar el ID de la imagen
+
     public CinematicDirector(Camera camera) {
         this.camera = camera;
+        this.titleTextureID = Textura.loadTexture("/titulo.png");
     }
 
     public void start() {
@@ -31,29 +34,68 @@ public class CinematicDirector {
         return isPlaying;
     }
 
-    public void renderTitleScreen(int width, int height) {
+    public void renderTitleScreen(int ancho, int alto) {
         if (!isPlaying) return;
+
+        glDisable(GL_LIGHTING); //APAGAR LUCES (Para que los colores sean puros y brillantes)
 
         //Frame para el titulo de carga
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glColor4f(0.0f, 0.0f, 0.0f, 0.5f); // Negro al 50%
+        glColor4f(0.0f, 0.0f, 0.0f, 0.25f); // Negro al 50%
         
-        glMatrixMode(GL_PROJECTION); glPushMatrix(); glLoadIdentity();
-        glOrtho(0, width, height, 0, -1, 1);
-        glMatrixMode(GL_MODELVIEW); glLoadIdentity();
+        glMatrixMode(GL_PROJECTION); 
+        glPushMatrix(); 
+        glLoadIdentity();
+        glOrtho(0, ancho, alto, 0, -1, 1);
+        glMatrixMode(GL_MODELVIEW); 
+        glLoadIdentity();
         glDisable(GL_DEPTH_TEST);
 
         // Dibuja una franja negra en el centro
-        glRectf(0, height/2 - 50, width, height/2 + 50);
+        glRectf(0, alto/2 - 50, ancho, alto/2 + 50);
 
         //Simulacion de Texto "ESPERANDO CONEXION..."
         //Como no tenemos nativamente drawText, usaremos una imagen :)
-        //...... en proceso
+        
+        if (titleTextureID > 0) // Solo dibujamos si la textura cargo correctamente (ID > 0)
+            {
+            glEnable(GL_TEXTURE_2D);// Habilitar texturas
+            glBindTexture(GL_TEXTURE_2D, titleTextureID); // Seleccionar nuestra imagen
+            
+            // Poner el color en blanco puro para que la imagen se vea con sus colores originales
+            glColor4f(1.0f, 1.0f, 1.0f, 1.0f); 
+
+            // Efecto de parpadeo
+            long time = System.currentTimeMillis();
+            if ((time / 500) % 2 == 0) {
+                 // Definir tamaño y posicion de la imagen cargada (nuestro titulo)
+                float imgW = 700; // Ancho deseado en pantalla
+                float imgH = 100;  // Alto deseado
+
+                //Centramos la imagen 
+                float x = (ancho - imgW) / 2; // Centrado en X
+                float y = (alto - imgH) / 2; // Centrado en Y
+
+                glBegin(GL_QUADS);
+                    // Mapeo de coordenadas (Esquinas de la imagen a Esquinas del cuadrado)
+                    glTexCoord2f(0, 0); glVertex2f(x, y);          // Arriba Izquierda
+                    glTexCoord2f(1, 0); glVertex2f(x + imgW, y);   // Arriba Derecha
+                    glTexCoord2f(1, 1); glVertex2f(x + imgW, y + imgH); // Abajo Derecha
+                    glTexCoord2f(0, 1); glVertex2f(x, y + imgH);   // Abajo Izquierda
+                glEnd();
+            }
+            
+            glDisable(GL_TEXTURE_2D); //Apagar texturas al terminar
+        }
         
         // Restaurar estado
         glEnable(GL_DEPTH_TEST);
         glDisable(GL_BLEND);
+
+        //ENCENDER LUCES DE NUEVO (Para que el robot se vea bien despues)
+        glEnable(GL_LIGHTING);
+
         glMatrixMode(GL_PROJECTION); glPopMatrix();
         glMatrixMode(GL_MODELVIEW);
     }

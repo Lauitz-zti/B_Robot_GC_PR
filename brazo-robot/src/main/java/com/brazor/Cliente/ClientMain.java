@@ -34,9 +34,6 @@ public class ClientMain {
         UdpListener udpListener = new UdpListener(robot, 6000); //ESCUCHAR actualizaciones rápidas (Servidor -> Pantalla)
                                                                     // Escucha en el puerto 6000 donde el servidor hace el broadcast
         Camera camera = new Camera();
-       director = new CinematicDirector(camera);
-
-        director.start();// ARRANCAMOS EN MODO CINE
 
         udpListener.startListening();
         network.ConClientServer("localhost", 5000);//Conexion de red
@@ -52,7 +49,11 @@ public class ClientMain {
         camera.registerCallbacks(window);
 
         glfwMakeContextCurrent(window);
-        GL.createCapabilities();
+        GL.createCapabilities(); //Se crea el mundo OpenGL
+
+        //Esto no puede existir antes de que se cree el mundo por eso es imprtnte que se cree despues
+        director = new CinematicDirector(camera);
+        director.start();// ARRANCAMOS EN MODO CINE
 
         //CONFIGURACION OPENGL
         glEnable(GL_DEPTH_TEST);
