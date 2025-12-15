@@ -81,6 +81,26 @@ public class RobotRenderer {
 
         glPopMatrix();
     }
+
+    public void drawPiso() { //Dibujamos un piso para que no solo este flotando y asi activar colisiones
+        // Desactivar iluminacion temporalmente para que el suelo tenga color plano o activar materiales
+        glDisable(GL_LIGHTING); 
+        
+        glBegin(GL_QUADS);
+            glColor3f(0.2f, 0.2f, 0.2f); // Gris oscuro
+            
+            float tam = 50.0f;
+            float PisoY = 0.0f; // La altura del suelo
+
+            // Dibujar cuadrado grande
+            glVertex3f(-tam, PisoY, -tam);
+            glVertex3f(-tam, PisoY,  tam);
+            glVertex3f( tam, PisoY,  tam);
+            glVertex3f( tam, PisoY, -tam);
+        glEnd();
+        glEnable(GL_LIGHTING);// Volver a activar iluminacion para el robot
+    }
+
     /*Sigue en prueba, posiblemente migremos esto al cliente para control local
     public void input(long window) {
         float s = 1.5f; 

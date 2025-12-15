@@ -50,31 +50,41 @@ public class RobotStateManager {
 
         cmdAccepTime = System.currentTimeMillis();
 
-        //Procesar movimiento
+        //Procesar movimiento agregamos colision
         //Utilizamos lo que teniamos en 
         String[] parts = cmd.split(":");
         if (parts.length < 2) return "BAD_FORMAT";
         
-        float val = Float.parseFloat(parts[1]);
+        float val = 0;
+        try{
+            val = Float.parseFloat(parts[1]);
+        }catch(NumberFormatException e) {
+            return "ERROR_NUM"; }
         boolean cambio = false;
 
         if (parts[0].equals("MOVE_BASE")){
-             base = clamp(base + val, -90, 90); cambio = true; 
+             base = clamp(base + val, -90, 90);
+             cambio = true; 
             }
         if (parts[0].equals("MOVE_HOMBRO")){ 
-            hombro = clamp(hombro + val, -10, 135); cambio = true; 
+            hombro = clamp(hombro + val, -30, 100);
+            cambio = true; 
         }
         if (parts[0].equals("MOVE_CODO")){
-            codo = clamp(codo + val, -120, 0); cambio = true; 
+            codo = clamp(codo + val, -120, 0);
+            cambio = true; 
             }
         if (parts[0].equals("MOVE_MUN1")){
-            m1 = clamp(m1 + val, -90, 90); cambio = true; 
+            m1 = clamp(m1 + val, -90, 90); 
+            cambio = true; 
         }
         if (parts[0].equals("MOVE_MUN2")){
-            m2 = clamp(m2 + val, -45, 45); cambio = true;
+            m2 = clamp(m2 + val, -45, 45);
+            cambio = true;
         }
         if (parts[0].equals("MOVE_PINZA")){
-            pinza = clamp(pinza + val, 0, 1); cambio = true;
+            pinza = clamp(pinza + val, 0, 1);
+            cambio = true;
         }
 
         //Guardar en BD si hubo cambio

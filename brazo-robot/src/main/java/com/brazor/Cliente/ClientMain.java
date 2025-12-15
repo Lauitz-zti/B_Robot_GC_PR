@@ -72,22 +72,31 @@ public class ClientMain {
 
         //BUCLE PRINCIPAL
         while (!glfwWindowShouldClose(window)) {
-            // Inputs delegados al Movimiento del Brazo
-            movimiento.processInput(window);
-            camera.input(window);
+
+            // Si presionas ENTER, fuerzas el desbloqueo SIEMPRE
+            if (modoEspera && glfwGetKey(window, GLFW_KEY_ENTER) == GLFW_PRESS) {
+                System.out.println("Modo Offline");
+                despertar(); 
+            }
 
             //CONTROL DE LA CINEMATICA CAMARA
-            if (director.isActive()) {
+            if (modoEspera) {
                 // Si la demo corre, el "Director" mueve la camara
-                director.update();
+                if (director != null) director.update();
             } else {
                 // Si no, el usuario usa el mouse
-                camera.input(window);
+                camera.input(window); // El usuario mueve la camara con el mouse
+                movimiento.processInput(window); // El usuario mueve el robot con el teclado
                 
-                // Tecla "P" para iniciar demo manual (para probar)
+                //Presionar ENTER en la PC, fuerzas el desbloqueo sin usar la red
                 if (glfwGetKey(window, GLFW_KEY_P) == GLFW_PRESS) {
                     director.start();
+                    modoEspera = true;
+                    System.out.println("SISTEMA BLOQUEADO MANUALMENTE");
                 }
+            /*aunque presionemos las teclas, el objeto movimiento nunca recibe la orden de leerlas 
+            la laptop quedara efectivamente "bloqueada" (solo viendo la animacion) 
+            hasta que pidas el control de otro dispositivo */
             }
 
             // Render
@@ -101,8 +110,8 @@ public class ClientMain {
             for(int i=-10; i<=10; i++) { glVertex3f(-10,0,i); glVertex3f(10,0,i); glVertex3f(i,0,-10); glVertex3f(i,0,10); }
             glEnd(); glEnable(GL_LIGHTING);
 
-            // Dibujar Robot (Sus datos se actualizan solos gracias a NetworkClient)
-            robot.draw();
+            robot.drawPiso();
+            robot.draw(); // Dibujar Robot (Sus datos se actualizan solos gracias a NetworkClient)
 
             if (modoEspera) {
                 director.renderTitleScreen(1024, 768);// Dibuja el titulo "ESPERANDO CONEXION..." 
