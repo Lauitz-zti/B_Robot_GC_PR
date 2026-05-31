@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Nuevo Operador</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-dark text-white d-flex align-items-center justify-content-center" style="height: 100vh;">
+
+    <div class="card bg-secondary text-white shadow-lg" style="width: 28rem;">
+        <div class="card-body p-5">
+            <h3 class="card-title text-center mb-4">Alta de Nuevo Operador</h3>
+            
+            <div id="formularioRegistro">
+                <label class="form-label">Correo electronico</label>
+                <input type="email" id="txtEmailReg" class="form-control mb-3" placeholder="ejemplo@universidad.edu">
+                
+                <label class="form-label">Contraseña</label>
+                <input type="password" id="txtPasswordReg" class="form-control mb-3" placeholder="Mínimo 6 caracteres">
+                
+                <label class="form-label">Confirmar Contraseña</label>
+                <input type="password" id="txtPasswordConfirm" class="form-control mb-4" placeholder="Repite la contraseña">
+                
+                <button id="btnCrearCuenta" class="btn btn-primary w-100 fw-bold py-2">
+                    Crear Cuenta Segura
+                </button>
+                <a href="index.html" class="btn btn-link text-light w-100 mt-2 text-decoration-none">
+                    Volver al inicio de sesion
+                </a>
+            </div>
+
+            <div id="resultadoReg" class="alert d-none mt-4 text-center" role="alert"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+        //Configuracion de Firebase
+        const firebaseConfig = {
+        apiKey: "AIzaSyBZw2-mhQmHGDXMrFHLqfmJmNtSEKgU2Zs",
+        authDomain: "brazorobot-web.firebaseapp.com",
+        projectId: "brazorobot-web",
+        storageBucket: "brazorobot-web.firebasestorage.app",
+        messagingSenderId: "691940249414",
+        appId: "1:691940249414:web:cfb2800893af7788085f47"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        const btnCrearCuenta = document.getElementById('btnCrearCuenta');
+        const txtEmailReg = document.getElementById('txtEmailReg');
+        const txtPasswordReg = document.getElementById('txtPasswordReg');
+        const txtPasswordConfirm = document.getElementById('txtPasswordConfirm');
+        const divResultadoReg = document.getElementById('resultadoReg');
+        const formularioRegistro = document.getElementById('formularioRegistro');
+
+        btnCrearCuenta.addEventListener('click', () => {
+            const email = txtEmailReg.value;
+            const password = txtPasswordReg.value;
+            const passwordConfirm = txtPasswordConfirm.value;
+
+            // 1. Validaciones de formulario basicas
+            if(!email || !password || !passwordConfirm) {
+                mostrarAlerta("Por favor, llena todos los campos.");
+                return;
+            }
+
+            if(password !== passwordConfirm) {
+                mostrarAlerta("Las contraseñas no coinciden");
+                return;
+            }
+
+            if(password.length < 8) {
+                mostrarAlerta("La contraseña debe tener al menos 8 caracteres.");
+                return;
+            }
+
+            mostrarAlerta("Creando cuenta...");
+
+            //Crear cuenta en Firebase Authentication
+            createUserWithEmailAndPassword(auth, email, password)
+                .then(userCredential => userCredential.user.getIdToken())
+                .then(idToken => {
+                    return fetch('http://localhost:8080/api/auth/verificar-token', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ token: idToken })
+                    });
+                })
+                .then(respuesta => {
+                    // Si la respuesta no es exitosa (ej. status 500 o 404), lanzamos error con el codigo
+                    if (!respuesta.ok) {
+                        throw new Error(`Código de servidor: ${respuesta.status}`);
+                    }
+                    return respuesta.json();
+                })
+                .then(datos => {
+                    if(datos.status === "success") {
+                        formularioRegistro.style.display = "none";
+                        mostrarAlerta(`¡Cuenta creada con éxito!<br> ${datos.mensaje}.`, "success");
+                    } else {
+                        mostrarAlerta(`Error en base de datos local: ${datos.mensaje}`, "danger");
+                    }
+                })
+                .catch(error => {
+                    //errores de red o caida del servidor
+                    mostrarAlerta(`No se pudo sincronizar el registro. ${error.message}`, "danger");
+                    console.error(error);
+                });
+            });
+
+        function mostrarAlerta(mensaje, tipo) {
+            divResultadoReg.className = `alert alert-${tipo} mt-4 text-center`;
+            divResultadoReg.innerHTML = mensaje;
+            divResultadoReg.classList.remove('d-none');
+        }
+    </script>
+</body>
+</html>
