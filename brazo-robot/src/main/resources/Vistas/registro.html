@@ -101,10 +101,16 @@
                 .then(datos => {
                     if(datos.status === "success") {
                         formularioRegistro.style.display = "none";
-                        mostrarAlerta(`¡Cuenta creada con éxito!<br> ${datos.mensaje}.`, "success");
+                        mostrarAlerta(`Ya tienes acceso al brazo <br> ${datos.mensaje}. Redirigiendo al panel...`, "success");
+                                        
+                        //mandamos al panel de control de brazo despues de un breve mensaje de exito
+                        setTimeout(() => {
+                            window.location.href = 'panel.html';
+                            }, 2000); // Espera 2 segundos para que leas el mensaje
+  
                     } else {
                         mostrarAlerta(`Error en base de datos local: ${datos.mensaje}`, "danger");
-                    }
+                                    }
                 })
                 .catch(error => {
                     //errores de red o caida del servidor

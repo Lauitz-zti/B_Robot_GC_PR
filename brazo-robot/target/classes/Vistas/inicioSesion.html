@@ -81,6 +81,7 @@
             .then(respuesta => respuesta.json())
             .then(datos => {
                             if(datos.status === "success") {
+                                localStorage.setItem("brazoActivo", datos.id_brazo);
                                 divResultado.className = "alert alert-success mt-3";
                                 divResultado.innerHTML = `Conexin establecida: ${datos.mensaje}. Redirigiendo al laboratorio...`;
                                 

@@ -24,8 +24,8 @@ public class UsuarioController {
     }
 
     @PostMapping("/verificar-token")
-    public ResponseEntity<Map<String, String>> verificarToken(@RequestBody Map<String, String> payload) {
-        String idToken = payload.get("token");
+    public ResponseEntity<Map<String, String>> verificarToken(@RequestBody Map<String, Object> payload) {
+        String idToken = (String) payload.get("token");
 
         //Validar que el token no sea nulo o vacio antes de intentar verificarlo con Firebase
         if (idToken == null || idToken.isBlank()) {
@@ -37,19 +37,18 @@ public class UsuarioController {
             FirebaseToken tokenVerificado = firebaseAuth.verifyIdToken(idToken);
             String uid   = tokenVerificado.getUid();
             String email = tokenVerificado.getEmail();
+            String username = (String) payload.get("username");
 
             // 3. Validacion del email antes de usarlo
             if (email == null || !email.contains("@")) {
                 return respuesta(HttpStatus.BAD_REQUEST, "error", "email invalido");
             }
 
-            String username = email.split("@")[0];
-
             // 4. Persistencia en base de datos
-            boolean exito = usuarioDAO.registrarOVerificar(uid, username, email);
+            Integer idBrazo = usuarioDAO.registrarOVerificar(uid, username, email);
 
-            if (exito) {
-                return respuesta(HttpStatus.OK, "success", "Bienvenido " + username);
+            if (idBrazo != null) {
+                return respuestaExito(username, String.valueOf(idBrazo)); //Usamos el método para exito que incluye el id del brazo robot
             } else {
                 return respuesta(HttpStatus.INTERNAL_SERVER_ERROR, "error",
                         "Error al guardar en la base de datos");
@@ -66,10 +65,21 @@ public class UsuarioController {
         }
     }
 
+
+
+    /*METODO AUXILIAR */
     // Metodo auxiliar para no repetir new HashMap<>() en cada return
-    //Ayuda con ia
     private ResponseEntity<Map<String, String>> respuesta(HttpStatus status, String statusVal, String mensaje) 
     {
         return ResponseEntity.status(status).body(Map.of("status", statusVal, "mensaje", mensaje));
+    }
+
+    // 2. Nuevo método auxiliar para el éxito (Acepta 3 parámetros usando Map.of)
+    private ResponseEntity<Map<String, String>> respuestaExito(String username, String idBrazo) {
+        return ResponseEntity.ok(Map.of(
+            "status", "success", 
+            "mensaje", "Bienvenido " + username,
+            "id_brazo", idBrazo
+        ));
     }
 }
