@@ -10,10 +10,12 @@ import java.util.List;
 public class UsuarioDAO {
     
     private final JdbcTemplate jdbcTemplate;
+    private final PerfilUsuarioDAO perfilDAO;
 
     // Spring Boot detecta este constructor e inyecta el JdbcTemplate de forma automática
-    public UsuarioDAO(JdbcTemplate jdbcTemplate) {
+    public UsuarioDAO(JdbcTemplate jdbcTemplate, PerfilUsuarioDAO perfilDAO) {
         this.jdbcTemplate = jdbcTemplate;
+        this.perfilDAO = perfilDAO;
     }
 
     @Transactional
@@ -38,6 +40,10 @@ public class UsuarioDAO {
             Integer idNuevoUsuario = jdbcTemplate.queryForObject(sqlInsert, Integer.class, username, email, firebaseUid);
             
             if (idNuevoUsuario != null) {
+
+                //Creamos su perfil con valores por defecto
+                perfilDAO.crearPerfilInicial(idNuevoUsuario, username);
+
                 //Asignamos su brazo robot propio
                 String nombreBrazo = "Brazo de " + username;
                 String sqlInsertBrazo = "INSERT INTO brazos_roboticos (id_usuario, nombre_instancia, es_simulado) VALUES (?, ?, TRUE) RETURNING id_brazo";
