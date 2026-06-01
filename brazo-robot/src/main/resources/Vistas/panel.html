@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Control - Gemelo Digital</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-dark text-white p-5">
+    <div class="position-absolute top-0 end-0 p-4">
+        <a href="perfil.html" class="btn btn-outline-light rounded-circle p-2" title="Mi Perfil">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M3 14s-1 0-1-1 1-4 6-4 6 3 6 4-1 1-1 1zm5-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6"/>
+            </svg>
+        </a>
+        <button id="btnCerrarSesion" class="btn btn-danger ms-2 rounded-circle p-2" title="Cerrar Sesión">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M8.5 10c-.276 0-.5-.448-.5-1s.224-1 .5-1 .5.448.5 1-.224 1-.5 1"/>
+                <path d="M10.828.122A.5.5 0 0 1 11 .5V1h.5A1.5 1.5 0 0 1 13 2.5V15h1.5a.5.5 0 0 1 0 1h-13a.5.5 0 0 1 0-1H3V1.5a.5.5 0 0 1 .43-.495l7-1a.5.5 0 0 1 .398.117M11.5 2H11v13h1V2.5a.5.5 0 0 0-.5-.5M4 1.934V15h6V1.077z"/>
+            </svg>
+        </button>
+    </div>
+
+    <div class="container">
+        <h2 class="mb-4 text-center">Consola de controles</h2>
+        
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card bg-secondary text-white shadow">
+                    <div class="card-body p-4">
+                        <h5 class="card-title mb-4 border-bottom pb-2">Ejes de Rotación</h5>
+                        
+                        <div class="mb-4">
+                            <label class="form-label d-flex justify-content-between">
+                                <span>Rotación Base (Eje Y)</span>
+                                <span id="valBase" class="fw-bold text-info">90°</span>
+                            </label>
+                            <input type="range" class="form-range" id="sliderBase" min="0" max="180" value="90">
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label d-flex justify-content-between">
+                                <span>Elevación Hombro (Eje X)</span>
+                                <span id="valHombro" class="fw-bold text-info">45°</span>
+                            </label>
+                            <input type="range" class="form-range" id="sliderHombro" min="0" max="180" value="45">
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label d-flex justify-content-between">
+                                <span>Flexión Codo (Eje X)</span>
+                                <span id="valCodo" class="fw-bold text-info">0°</span>
+                            </label>
+                            <input type="range" class="form-range" id="sliderCodo" min="0" max="180" value="0">
+                        </div>
+
+                        <button id="btnEnviarPosicion" class="btn btn-success w-100 fw-bold mt-3">
+                            Transmitir Coordenadas
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script>
+        //actualizar los valores de los sliders en tiempo real
+        const controles = ['Base', 'Hombro', 'Codo'];
+        
+        controles.forEach(eje => {
+            const slider = document.getElementById(`slider${eje}`);
+            const texto = document.getElementById(`val${eje}`);
+            
+            slider.addEventListener('input', (event) => {
+                texto.innerText = `${event.target.value}°`;
+            });
+        });
+
+        //transmitir coordenadas al servidor central
+        const btnEnviar = document.getElementById('btnEnviarPosicion');
+        
+        btnEnviar.addEventListener('click', () => {
+            // Obtener valores actuales de los sliders y convertirlos a numeros enteros
+            const idDinamico = localStorage.getItem("brazoActivo");
+            // Si por alguna razon entro sin loguearse, lo pateamos al inicio
+            if(!idDinamico) {
+                alert("No hay conexion activa. Regresando a seguridad...");
+                window.location.href = "inicioSesion.html";
+                return;
+            }
+            const anguloBase = parseInt(document.getElementById('sliderBase').value);
+            const anguloHombro = parseInt(document.getElementById('sliderHombro').value);
+            const anguloCodo = parseInt(document.getElementById('sliderCodo').value);
+
+            // Cambiar el texto del botón para dar retroalimentacion visual de carga
+            const textoOriginal = btnEnviar.innerText;
+            btnEnviar.innerText = "Transmitiendo...";
+            btnEnviar.disabled = true;
+
+            // Construir el paquete de datos (modificamos para cualquier nuevo usuario registrado)
+            const payload = {
+                id_brazo: parseInt(idDinamico), 
+                base: anguloBase,
+                hombro: anguloHombro,
+                codo: anguloCodo
+            };
+
+            // Enviar la peticion HTTP POST a Spring Boot
+            fetch('http://localhost:8080/api/brazo/mover', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(respuesta => {
+                if (!respuesta.ok) throw new Error(`Error HTTP: ${respuesta.status}`);
+                return respuesta.json();
+            })
+            .then(datos => {
+                if(datos.status === "success") {
+                    // Si todo sale bien, lo mostramos en consola y con una alerta rápida
+                    console.log("Éxito:", datos.mensaje);
+                    alert("¡Coordenadas sincronizadas con el Gemelo Digital!");
+                } else {
+                    alert("Fallo lógico: " + datos.mensaje);
+                }
+            })
+            .catch(error => {
+                console.error("Error de conexión:", error);
+                alert("No se pudo conectar con el servidor central.");
+            })
+            .finally(() => {
+                btnEnviar.innerText = textoOriginal;
+                btnEnviar.disabled = false;
+            });
+        });
+    </script>
+</body>
+</html>

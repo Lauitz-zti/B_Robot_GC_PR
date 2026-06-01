@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="es" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Perfil</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #0b0f19; /* Tono oscuro profundo y frio */
+            color: #e2e8f0; /* Gris platinado/plateado para texto */
+        }
+        .card-perfil {
+            background-color: #111827;
+            border: 1px solid #374151;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+        .foto-perfil {
+            width: 150px;
+            height: 150px;
+            object-fit: cover;
+            border: 4px solid #4b5563; /* Borde platinado frio */
+            border-radius: 50%;
+            background-color: #1f2937;
+        }
+        .btn-guardar {
+            background-color: #2563eb; /* Azul frio y vibrante */
+            border: none;
+        }
+        .btn-guardar:hover {
+            background-color: #1d4ed8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h2 class="fw-bold">Configuracion de Cuenta</h2>
+                    <a href="panel.html" class="btn btn-outline-secondary text-light">Volver al Laboratorio</a>
+                </div>
+
+                <div class="card card-perfil p-4 rounded-4">
+                    
+                    <div class="text-center mb-4">
+                        <img id="imgAvatar" src="https://via.placeholder.com/150/1f2937/FFFFFF?text=Usuario" alt="Foto de Perfil" class="foto-perfil mb-3 shadow">
+                        <input type="hidden" id="perfilIdUsuario">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Nombre Usuario</label>
+                        <input type="text" class="form-control bg-dark text-light border-secondary" id="perfilNombre">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Foto de Perfil</label>
+                        <input type="url" class="form-control bg-dark text-light border-secondary" id="perfilFoto" placeholder="https://ejemplo.com/mifoto.jpg">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Acerca de mi</label>
+                        <textarea class="form-control bg-dark text-light border-secondary" id="perfilBio" rows="4" placeholder="Estudiante de ingeniería, desarrollador..."></textarea>
+                    </div>
+
+                    <div class="d-grid">
+                        <button type="button" class="btn btn-guardar text-white fw-bold py-2 shadow" id="btnGuardarPerfil">Guardar Cambios</button>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        //Verificar si el usuario tiene un brazo activo, si no, redirigir al inicio de sesión
+        document.addEventListener('DOMContentLoaded', () => {
+            const idBrazo = localStorage.getItem("brazoActivo");
+            if (!idBrazo) {
+                window.location.replace("inicioSesion.html");
+                return;
+            }
+
+            //Cargar los datos del perfil usando el ID del brazo activo
+            fetch(`http://localhost:8080/api/perfil/obtener-por-brazo/${idBrazo}`)
+            .then(res => res.json())
+            .then(datos => {
+                if(datos.status === "success") {
+                    document.getElementById('perfilIdUsuario').value = datos.id_usuario;
+                    document.getElementById('perfilNombre').value = datos.nombre_completo || '';
+                    document.getElementById('perfilBio').value = datos.bio || '';
+                    document.getElementById('perfilTema').value = datos.tema_interfaz || 'dark';
+                    
+                    // Manejo de la imagen de perfil
+                    //aun por verse, implementar con ayuda de firebase
+
+                }
+            })
+            .catch(err => console.error("Error al cargar perfil:", err));
+        });
+
+        //Guardar los cambios del perfil
+        document.getElementById('btnGuardarPerfil').addEventListener('click', () => {
+            const btn = document.getElementById('btnGuardarPerfil');
+            btn.innerText = "Guardando...";
+            btn.disabled = true;
+
+            const payload = {
+                id_usuario: parseInt(document.getElementById('perfilIdUsuario').value),
+                nombre_completo: document.getElementById('perfilNombre').value,
+                //aqui debe ir la logica para subir la imagen a firebase y obtener la URL
+                bio: document.getElementById('perfilBio').value,
+                tema_interfaz: document.getElementById('perfilTema').value
+            };
+
+            fetch('http://localhost:8080/api/perfil/actualizar', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(datos => {
+                if(datos.status === "success") {
+                    alert("Perfil actualizado correctamente.");
+                } else {
+                    alert("Error: " + datos.mensaje);
+                }
+            })
+            .finally(() => {
+                btn.innerText = "Guardar Cambios";
+                btn.disabled = false;
+            });
+        });
+    </script>
+</body>
+</html>
