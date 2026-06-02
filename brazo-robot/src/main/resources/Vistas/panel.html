@@ -1,12 +1,16 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-bs-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel de Control - Gemelo Digital</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { background-color: #0b0f19; }
+    </style>
 </head>
-<body class="bg-dark text-white p-5">
+<body class="text-white p-5">
+    
     <div class="position-absolute top-0 end-0 p-4">
         <a href="perfil.html" class="btn btn-outline-light rounded-circle p-2" title="Mi Perfil">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" viewBox="0 0 16 16">
@@ -22,53 +26,103 @@
     </div>
 
     <div class="container">
-        <h2 class="mb-4 text-center">Consola de controles</h2>
+        <h2 class="mb-4 text-center fw-bold">Consola de Telemetría</h2>
         
-        <div class="row justify-content-center">
-            <div class="col-md-6">
-                <div class="card bg-secondary text-white shadow">
-                    <div class="card-body p-4">
-                        <h5 class="card-title mb-4 border-bottom pb-2">Ejes de Rotación</h5>
-                        
-                        <div class="mb-4">
-                            <label class="form-label d-flex justify-content-between">
-                                <span>Rotación Base (Eje Y)</span>
-                                <span id="valBase" class="fw-bold text-info">90°</span>
-                            </label>
-                            <input type="range" class="form-range" id="sliderBase" min="0" max="180" value="90">
-                        </div>
-
-                        <div class="mb-4">
-                            <label class="form-label d-flex justify-content-between">
-                                <span>Elevación Hombro (Eje X)</span>
-                                <span id="valHombro" class="fw-bold text-info">45°</span>
-                            </label>
-                            <input type="range" class="form-range" id="sliderHombro" min="0" max="180" value="45">
-                        </div>
-
-                        <div class="mb-4">
-                            <label class="form-label d-flex justify-content-between">
-                                <span>Flexión Codo (Eje X)</span>
-                                <span id="valCodo" class="fw-bold text-info">0°</span>
-                            </label>
-                            <input type="range" class="form-range" id="sliderCodo" min="0" max="180" value="0">
-                        </div>
-
-                        <button id="btnEnviarPosicion" class="btn btn-success w-100 fw-bold mt-3">
-                            Transmitir Coordenadas
-                        </button>
-                    </div>
+        <div class="row mt-4 bg-dark p-4 rounded-4 shadow border border-secondary">
+            <div class="col-md-6 mb-3">
+                <h5 class="text-secondary border-bottom pb-2 mb-3">Ejes Principales</h5>
+                
+                <div class="mb-3">
+                    <label class="form-label d-flex justify-content-between">
+                        <span>Base (Y)</span> <span id="valBase" class="fw-bold text-primary">0°</span>
+                    </label>
+                    <input type="range" class="form-range" id="rangoBase" min="-180" max="180" value="0">
                 </div>
+                <div class="mb-3">
+                    <label class="form-label d-flex justify-content-between">
+                        <span>Hombro (X)</span> <span id="valHombro" class="fw-bold text-primary">0°</span>
+                    </label>
+                    <input type="range" class="form-range" id="rangoHombro" min="-180" max="180" value="0">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label d-flex justify-content-between">
+                        <span>Codo (X)</span> <span id="valCodo" class="fw-bold text-primary">0°</span>
+                    </label>
+                    <input type="range" class="form-range" id="rangoCodo" min="-180" max="180" value="0">
+                </div>
+            </div>
+
+            <div class="col-md-6 mb-3">
+                <h5 class="text-secondary border-bottom pb-2 mb-3">Efector Final</h5>
+                
+                <div class="mb-3">
+                    <label class="form-label d-flex justify-content-between">
+                        <span>Muñeca Pitch (X)</span> <span id="valPitch" class="fw-bold text-info">0°</span>
+                    </label>
+                    <input type="range" class="form-range" id="rangoPitch" min="-180" max="180" value="0">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label d-flex justify-content-between">
+                        <span>Muñeca Roll (Z)</span> <span id="valRoll" class="fw-bold text-info">0°</span>
+                    </label>
+                    <input type="range" class="form-range" id="rangoRoll" min="-180" max="180" value="0">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label d-flex justify-content-between">
+                        <span>Efector Yaw (Y)</span> <span id="valYaw" class="fw-bold text-info">0°</span>
+                    </label>
+                    <input type="range" class="form-range" id="rangoYaw" min="-180" max="180" value="0">
+                </div>
+            </div>
+            
+            <div class="col-12 mt-3 text-center">
+                <button id="btnEnviarPosicion" class="btn btn-primary px-5 py-2 fw-bold text-white shadow">TRANSMITIR COORDENADAS</button>
             </div>
         </div>
     </div>
 
-<script>
-        //actualizar los valores de los sliders en tiempo real
-        const controles = ['Base', 'Hombro', 'Codo'];
+    <script>
+        const controles = ['Base', 'Hombro', 'Codo', 'Pitch', 'Roll', 'Yaw'];
         
+        //Seguridad inicial
+        const idDinamico = localStorage.getItem("brazoActivo");
+        if(!idDinamico) {
+            alert("No hay conexion activa. Regresando a seguridad...");
+            window.location.replace("inicioSesion.html");
+        }
+
+        //Sincronizamos el estado inicial de los sliders con la base de datos al cargar la pagina
+        document.addEventListener('DOMContentLoaded', () => {
+            fetch(`http://localhost:8080/api/brazo/estado/${idDinamico}`)
+            .then(res => res.json())
+            .then(datos => {
+                if(datos.status === "success" && datos.angulos) {
+                    // Actualizamos cada slider con los datos de la base de datos
+                    document.getElementById('rangoBase').value = datos.angulos.base;
+                    document.getElementById('valBase').innerText = `${datos.angulos.base}°`;
+                    
+                    document.getElementById('rangoHombro').value = datos.angulos.hombro;
+                    document.getElementById('valHombro').innerText = `${datos.angulos.hombro}°`;
+                    
+                    document.getElementById('rangoCodo').value = datos.angulos.codo;
+                    document.getElementById('valCodo').innerText = `${datos.angulos.codo}°`;
+                    
+                    document.getElementById('rangoPitch').value = datos.angulos.pitch;
+                    document.getElementById('valPitch').innerText = `${datos.angulos.pitch}°`;
+                    
+                    document.getElementById('rangoRoll').value = datos.angulos.roll;
+                    document.getElementById('valRoll').innerText = `${datos.angulos.roll}°`;
+                    
+                    document.getElementById('rangoYaw').value = datos.angulos.yaw;
+                    document.getElementById('valYaw').innerText = `${datos.angulos.yaw}°`;
+                }
+            })
+            .catch(err => console.log("Estado inicial no disponible aún."));
+        });
+
+        //Actuaizacion en tiempo real de los valores al mover los sliders
         controles.forEach(eje => {
-            const slider = document.getElementById(`slider${eje}`);
+            const slider = document.getElementById(`rango${eje}`);
             const texto = document.getElementById(`val${eje}`);
             
             slider.addEventListener('input', (event) => {
@@ -76,64 +130,50 @@
             });
         });
 
-        //transmitir coordenadas al servidor central
+        //Enviar los datos al servidor al hacer click en el boton
         const btnEnviar = document.getElementById('btnEnviarPosicion');
-        
         btnEnviar.addEventListener('click', () => {
-            // Obtener valores actuales de los sliders y convertirlos a numeros enteros
-            const idDinamico = localStorage.getItem("brazoActivo");
-            // Si por alguna razon entro sin loguearse, lo pateamos al inicio
-            if(!idDinamico) {
-                alert("No hay conexion activa. Regresando a seguridad...");
-                window.location.href = "inicioSesion.html";
-                return;
-            }
-            const anguloBase = parseInt(document.getElementById('sliderBase').value);
-            const anguloHombro = parseInt(document.getElementById('sliderHombro').value);
-            const anguloCodo = parseInt(document.getElementById('sliderCodo').value);
-
-            // Cambiar el texto del botón para dar retroalimentacion visual de carga
+            
             const textoOriginal = btnEnviar.innerText;
             btnEnviar.innerText = "Transmitiendo...";
             btnEnviar.disabled = true;
 
-            // Construir el paquete de datos (modificamos para cualquier nuevo usuario registrado)
             const payload = {
                 id_brazo: parseInt(idDinamico), 
-                base: anguloBase,
-                hombro: anguloHombro,
-                codo: anguloCodo
+                angulos: {
+                    base: parseInt(document.getElementById('rangoBase').value),
+                    hombro: parseInt(document.getElementById('rangoHombro').value),
+                    codo: parseInt(document.getElementById('rangoCodo').value),
+                    pitch: parseInt(document.getElementById('rangoPitch').value),
+                    roll: parseInt(document.getElementById('rangoRoll').value),
+                    yaw: parseInt(document.getElementById('rangoYaw').value)
+                }
             };
 
-            // Enviar la peticion HTTP POST a Spring Boot
-            fetch('http://localhost:8080/api/brazo/mover', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+            fetch('http://localhost:8080/api/brazo/actualizar', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             })
-            .then(respuesta => {
-                if (!respuesta.ok) throw new Error(`Error HTTP: ${respuesta.status}`);
-                return respuesta.json();
-            })
+            .then(res => res.json())
             .then(datos => {
                 if(datos.status === "success") {
-                    // Si todo sale bien, lo mostramos en consola y con una alerta rápida
                     console.log("Éxito:", datos.mensaje);
-                    alert("¡Coordenadas sincronizadas con el Gemelo Digital!");
                 } else {
                     alert("Fallo lógico: " + datos.mensaje);
                 }
             })
-            .catch(error => {
-                console.error("Error de conexión:", error);
-                alert("No se pudo conectar con el servidor central.");
-            })
+            .catch(err => alert("No se pudo conectar con el servidor."))
             .finally(() => {
                 btnEnviar.innerText = textoOriginal;
                 btnEnviar.disabled = false;
             });
+        });
+
+        //Cerrar sesion
+        document.getElementById('btnCerrarSesion').addEventListener('click', () => {
+            localStorage.removeItem("brazoActivo");
+            window.location.replace("inicioSesion.html");
         });
     </script>
 </body>
