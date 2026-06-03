@@ -3,6 +3,9 @@ package com.brazor.Comunicacion.WebServer;
 import com.brazor.webapp.DAOs.BrazoDAO;
 import com.brazor.webapp.DTOs.Estado;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseToken;
+
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
@@ -21,17 +24,38 @@ public class BrazoSocketHandler extends TextWebSocketHandler {
     
     private final BrazoDAO brazoDAO;
     private final ObjectMapper objectMapper;
+    private final FirebaseAuth firebaseAuth; // 1. Agregamos Firebase
 
-    public BrazoSocketHandler(BrazoDAO brazoDAO) {
+    public BrazoSocketHandler(BrazoDAO brazoDAO, FirebaseAuth firebaseAuth) {
         this.brazoDAO = brazoDAO;
         this.objectMapper = new ObjectMapper();
+        this.firebaseAuth = firebaseAuth;
     }
 
     //Cuando inicia la conexión con el navegador (equivalente al TCP que teniamos antes "Cliente conectado desde IP: ...")
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-        sesionesActivas.add(session);
-        System.out.println("[WebSocket] Nuevo Gemelo Digital conectado. ID Sesion: " + session.getId());
+        // 3. Extraemos el token de la URL (ws://.../?token=ABC)
+        String query = session.getUri().getQuery();
+        String tokenRecibido = null;
+        if (query != null && query.contains("token=")) {
+            tokenRecibido = query.split("token=")[1];
+        }
+
+        try {
+            // 4. Validamos directamente con los servidores de Google
+            if (tokenRecibido != null) {
+                FirebaseToken decodedToken = firebaseAuth.verifyIdToken(tokenRecibido);
+                
+                sesionesActivas.add(session);
+                System.out.println("[WebSocket] Gemelo Digital autorizado para: " + decodedToken.getEmail());
+            } else {
+                throw new Exception("Sin token en la URL.");
+            }
+        } catch (Exception e) {
+            System.err.println("[Seguridad] Conexión WebSocket rechazada: " + e.getMessage());
+            session.close(CloseStatus.NOT_ACCEPTABLE);
+        }
     }
 
     //Cuando se cierra la conexion con el navegador (equivalente al TCP que teniamos antes "Cliente desconectado desde IP: ...")
