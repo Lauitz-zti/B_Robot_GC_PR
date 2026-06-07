@@ -21,6 +21,11 @@ public class UsuarioDAO {
     @Transactional
     //Verifica si el usuario ya existe por email, si no existe lo inserta con el UID de Firebase como password_hash
     public Integer registrarOVerificar(String firebaseUid, String username, String email) {
+
+        if (username == null || username.trim().isEmpty() || username.equals("null")) {
+            username = email.split("@")[0]; // Extrae la parte antes del @
+        }
+        
         String sqlBuscar = "SELECT id_usuario FROM usuarios WHERE email = ?";
 
         List<Integer> cuenta = jdbcTemplate.queryForList(sqlBuscar, Integer.class, email);
@@ -46,12 +51,12 @@ public class UsuarioDAO {
 
                 //Asignamos su brazo robot propio
                 String nombreBrazo = "Brazo de " + username;
-                String sqlInsertBrazo = "INSERT INTO brazos_roboticos (id_usuario, nombre_instancia, es_simulado) VALUES (?, ?, TRUE) RETURNING id_brazo";
+                String sqlInsertBrazo = "INSERT INTO brazo_robot (id_usuario, nombre_instancia, es_simulado) VALUES (?, ?, TRUE) RETURNING id_brazo";
                 Integer idNuevoBrazo = jdbcTemplate.queryForObject(sqlInsertBrazo, Integer.class, idNuevoUsuario, nombreBrazo);
                 
                 //Inicializamos el estado del nuevo brazo robot
                 if (idNuevoBrazo != null) {
-                    String sqlInsertEstado = "INSERT INTO estado_actual (id_brazo, angulos_jsonb, fuente) VALUES (?, '{\"base\": 0, \"hombro\": 0, \"codo\": 0}'::jsonb, 'WEB')";
+                    String sqlInsertEstado = "INSERT INTO estado_actual (id_brazo, angulos_jsonb, fuente) VALUES (?, '{\"base\": 0.0, \"shoulder\": 0.0, \"elbow\": 0.0, \"wrist1\": 0.0, \"wrist2\": 0.0, \"wrist3\": 0.0}'::jsonb, 'WEB')";
                     jdbcTemplate.update(sqlInsertEstado, idNuevoBrazo);
                     return idNuevoBrazo; // Retornamos la llave maestra
                 }
@@ -60,5 +65,20 @@ public class UsuarioDAO {
             System.err.println("Error fatal al aprovisionar: " + e.getMessage());
         }
         return null;
+    }
+
+    public String obtenerRolPorEmail(String email) {
+        String sql = "SELECT rol FROM usuarios WHERE email = ? AND activo = TRUE";
+            return jdbcTemplate.queryForObject(sql, String.class, email);
+    }
+
+    // Metodo auxiliar para obtener el ID del usuario necesario para la Sesion Web
+    public Integer obtenerIdPorEmail(String email) {
+        String sql = "SELECT id_usuario FROM usuarios WHERE email = ?";
+        try {
+            return jdbcTemplate.queryForObject(sql, Integer.class, email);
+        } catch (Exception e) {
+            return null;
+        }
     }
 }
