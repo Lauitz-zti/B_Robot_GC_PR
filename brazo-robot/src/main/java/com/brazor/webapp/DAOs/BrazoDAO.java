@@ -23,17 +23,7 @@ public class BrazoDAO {
             //Actualizamos la posicion actual (El tiempo real)
             String sqlUpdate = "UPDATE estado_actual SET angulos_jsonb = ?::jsonb, fecha_update = CURRENT_TIMESTAMP WHERE id_brazo = ?";
             jdbcTemplate.update(sqlUpdate, jsonAngulos, idBrazo);
-
-            //Busca a quien le pertenece este brazo (Necesitamos el id_usuario para el historial)
-            String sqlGetUsuario = "SELECT id_usuario FROM brazo_robot WHERE id_brazo = ?";
-            Integer idUsuario = jdbcTemplate.queryForObject(sqlGetUsuario, Integer.class, idBrazo);
-
-            //Guardamos el movimiento en la caja negra (historial_comandos)
-            if (idUsuario != null) {
-                String sqlInsertHistorial = "INSERT INTO historial_comandos (id_brazo, id_usuario, comando_json, ejecutado_en_fisico) VALUES (?, ?, ?, false)";
-                jdbcTemplate.update(sqlInsertHistorial, idBrazo, idUsuario, jsonAngulos);
-            }
-
+            //Ya no usarmos el historial por ahora, pero lo dejamos preparado para futuras mejoras
             return true;
         } catch (Exception e) {
             System.err.println("Error al actualizar telemetria: " + e.getMessage());
