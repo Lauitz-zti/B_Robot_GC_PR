@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="es" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administracion - Brazo</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #0b0f19;
+            color: #e2e8f0;
+        }
+        .stat-card {
+            background: #151b2b;
+            border: 1px solid #334155;
+            border-radius: 16px;
+            transition: border-color 0.2s;
+        }
+        .stat-card:hover { border-color: #3b82f6; }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            line-height: 1;
+        }
+        .table-dark { --bs-table-bg: #151b2b; }
+        .table-dark th { color: #94a3b8; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.05em; }
+
+        .badge-ADMIN    { background-color: #7c3aed; }
+        .badge-OPERATOR { background-color: #0ea5e9; }
+        .badge-VIEWER   { background-color: #475569; }
+
+        .nav-tabs .nav-link { color: #94a3b8; border: none; padding: 0.75rem 1.5rem; }
+        .nav-tabs .nav-link.active { color: #fff; border-bottom: 2px solid #3b82f6; background: transparent; }
+        .nav-tabs { border-bottom: 1px solid #334155; }
+
+        .log-row-error   { border-left: 3px solid #ef4444; }
+        .log-row-warning { border-left: 3px solid #f59e0b; }
+        .log-row-info    { border-left: 3px solid #3b82f6; }
+
+        #toastContainer { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9999; }
+
+        .avatar-circle {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: #334155;
+        }
+        .usuario-inactivo td { opacity: 0.45; }
+    </style>
+</head>
+<body class="p-4">
+
+<!-- ── HEADER ───────────────────────────────────────── -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold m-0">Panel de Administración</h2>
+        <small class="text-secondary">Gestión global del sistema Brazor</small>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <span id="adminEmail" class="text-secondary small"></span>
+        <a href="panel.html" class="btn btn-outline-secondary btn-sm">← Volver al panel</a>
+        <button id="btnCerrarSesion" class="btn btn-danger btn-sm">Cerrar sesión</button>
+    </div>
+</div>
+
+<!-- ── TARJETAS DE METRICAS ──────────────────────────── -->
+<div class="row g-3 mb-4" id="seccionMetricas">
+    <div class="col-6 col-md-3">
+        <div class="stat-card p-4">
+            <div class="text-secondary small mb-1">Usuarios totales</div>
+            <div class="stat-number text-white" id="metricaTotalUsuarios">—</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card p-4">
+            <div class="text-secondary small mb-1">Usuarios activos</div>
+            <div class="stat-number text-success" id="metricaActivos">—</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card p-4">
+            <div class="text-secondary small mb-1">Brazos robóticos</div>
+            <div class="stat-number text-info" id="metricaBrazos">—</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="stat-card p-4">
+            <div class="text-secondary small mb-1">Eventos en bitácora</div>
+            <div class="stat-number text-warning" id="metricaLogs">—</div>
+        </div>
+    </div>
+</div>
+
+<!-- ── TABLAS ─────────────────────────────────────────── -->
+<ul class="nav nav-tabs mb-4" id="adminTabs">
+    <li class="nav-item"><button class="nav-link active" data-tab="usuarios">Usuarios</button></li>
+    <li class="nav-item"><button class="nav-link" data-tab="brazos">Brazos robóticos</button></li>
+    <li class="nav-item"><button class="nav-link" data-tab="logs">Bitácora global</button></li>
+</ul>
+
+<!-- ── PARA LOS  USUARIOS ─────────────────────────────── -->
+<div id="tabUsuarios">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <input type="text" id="buscarUsuario" class="form-control form-control-sm w-auto"
+               placeholder="Buscar por nombre o email…" style="min-width:280px">
+        <button class="btn btn-outline-primary btn-sm" onclick="cargarUsuarios()">↺ Actualizar</button>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-dark table-hover align-middle" id="tablaUsuarios">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Usuario</th>
+                    <th>Email</th>
+                    <th>Rol</th>
+                    <th>Estado</th>
+                    <th>Brazo</th>
+                    <th>Registro</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody id="bodyUsuarios">
+                <tr><td colspan="8" class="text-center text-secondary py-4">Cargando…</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ── LOS BRAZOS ROBOT────────────────────────────────── -->
+<div id="tabBrazos" class="d-none">
+    <div class="d-flex justify-content-end mb-3">
+        <button class="btn btn-outline-primary btn-sm" onclick="cargarBrazos()"> Actualizar</button>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-dark table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Propietario</th>
+                    <th>Tipo</th>
+                    <th>Ultima actualizacion</th>
+                    <th>Estado ángulos</th>
+                </tr>
+            </thead>
+            <tbody id="bodyBrazos">
+                <tr><td colspan="6" class="text-center text-secondary py-4">Cargando…</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- ── BITACORA (O LOGS) ──────────────────────────────────── -->
+<div id="tabLogs" class="d-none">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="d-flex gap-2 align-items-center">
+            <label class="text-secondary small mb-0">Ultimos</label>
+            <select id="limiteLogs" class="form-select form-select-sm w-auto">
+                <option value="50">50</option>
+                <option value="100" selected>100</option>
+                <option value="250">250</option>
+                <option value="500">500</option>
+            </select>
+            <label class="text-secondary small mb-0">registros</label>
+        </div>
+        <button class="btn btn-outline-primary btn-sm" onclick="cargarLogs()"> Actualizar</button>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-dark table-hover align-middle small">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Brazo</th>S
+                    <th>Usuario</th>
+                    <th>Código</th>
+                    <th>Mensaje</th>
+                    <th>Fecha</th>
+                </tr>
+            </thead>
+            <tbody id="bodyLogs">
+                <tr><td colspan="6" class="text-center text-secondary py-4">Cargando…</td></tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+
+<!-- PERMISOS QUE EL ADMIN PUEDE HACER -->
+<!-- ── CAMBIAR ROL ─────────────────────────────── -->
+<div class="modal fade" id="modalRol" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark border border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title">Cambiar rol de usuario</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-secondary mb-3">
+                    Usuario: <strong id="modalRolNombre" class="text-white"></strong>
+                </p>
+                <label class="form-label text-secondary small">Nuevo rol</label>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-light flex-fill" onclick="confirmarRol('ADMIN')">
+                        <span class="badge badge-ADMIN me-1">A</span> ADMIN
+                    </button>
+                    <button class="btn btn-outline-light flex-fill" onclick="confirmarRol('OPERATOR')">
+                        <span class="badge badge-OPERATOR me-1">O</span> OPERATOR
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── TOAST ──────────────────────────────────────────── -->
+<div id="toastContainer"></div>
+
+<!-- Firebase SDK -->
+<script type="module">
+    import { initializeApp }     from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signOut }
+        from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+    //CONFIGURACION DEL FIREBASE
+    const firebaseConfig = {
+        apiKey: "AIzaSyBZw2-mhQmHGDXMrFHLqfmJmNtSEKgU2Zs",
+        authDomain: "brazorobot-web.firebaseapp.com",
+        projectId: "brazorobot-web",
+        storageBucket: "brazorobot-web.firebasestorage.app",
+        messagingSenderId: "691940249414",
+        appId: "1:691940249414:web:cfb2800893af7788085f47"
+        };
+
+    const app  = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    // Exponemos el token para que las funciones del panel lo usen
+    window._getAdminToken = () =>
+        auth.currentUser ? auth.currentUser.getIdToken(true) : Promise.resolve(null);
+
+    onAuthStateChanged(auth, async (user) => {
+        if (!user) {
+            // No hay sesion — redirige al login
+            window.location.href = "inicioSesion.html";
+            return;
+        }
+
+        document.getElementById("adminEmail").textContent = user.email;
+
+        // Verificamos el rol antes de cargar datos
+        try {
+            const token = await user.getIdToken(true);
+            const resp  = await fetch("/api/admin/dashboard", {
+                headers: { "Authorization": "Bearer " + token }
+            });
+
+            if (resp.status === 403) {
+                alert("No tienes permisos de administrador.");
+                window.location.href = "panel.html";
+                return;
+            }
+
+            const data = await resp.json();
+            // Mostramos metricas del dashboard
+            document.getElementById("metricaTotalUsuarios").textContent = data.total_usuarios ?? "—";
+            document.getElementById("metricaActivos").textContent       = data.usuarios_activos ?? "—";
+            document.getElementById("metricaBrazos").textContent        = data.total_brazos ?? "—";
+            document.getElementById("metricaLogs").textContent          = data.total_logs ?? "—";
+
+            // Cargamos la tab inicial
+            cargarUsuarios();
+
+        } catch (e) {
+            console.error("Error al verificar admin:", e);
+        }
+    });
+
+    // Cerrar sesion
+    document.getElementById("btnCerrarSesion").addEventListener("click", () => {
+        signOut(auth).then(() => window.location.href = "inicioSesion.html");
+    });
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // ── Estado global ────────────────────────────────────────────────────
+    let usuarioEditandoId = null;
+    const modalRol        = new bootstrap.Modal(document.getElementById("modalRol"));
+
+    // ── Navegacion por tabs ───────────────────────────────────────────────
+    document.querySelectorAll("[data-tab]").forEach(btn => {
+        btn.addEventListener("click", () => {
+            // Activa el boton
+            document.querySelectorAll("[data-tab]")
+                    .forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+
+            // Muestra la seccion correcta
+            const tab = btn.dataset.tab;
+            document.getElementById("tabUsuarios").classList.toggle("d-none", tab !== "usuarios");
+            document.getElementById("tabBrazos")  .classList.toggle("d-none", tab !== "brazos");
+            document.getElementById("tabLogs")    .classList.toggle("d-none", tab !== "logs");
+
+            // Carga datos si aun no se cargaron
+            if (tab === "brazos") cargarBrazos();
+            if (tab === "logs")   cargarLogs();
+        });
+    });
+
+    // ── Utilidad: obtiene el token y llama a la API ───────────────────────
+    async function apiFetch(url, opciones = {}) {
+        const token = await window._getAdminToken();
+        return fetch(url, {
+            ...opciones,
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": "Bearer " + token,
+                ...(opciones.headers || {})
+            }
+        });
+    }
+
+    // ── Toast ─────────────────────────────────────────────────────────────
+    function mostrarToast(mensaje, tipo = "success") {
+        const colores = { success: "bg-success", error: "bg-danger", info: "bg-info" };
+        const id      = "toast-" + Date.now();
+        const html    = `
+            <div id="${id}" class="toast align-items-center text-white ${colores[tipo] || "bg-secondary"} border-0 show mb-2" role="alert">
+                <div class="d-flex">
+                    <div class="toast-body">${mensaje}</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto"
+                            onclick="document.getElementById('${id}').remove()"></button>
+                </div>
+            </div>`;
+        document.getElementById("toastContainer").insertAdjacentHTML("beforeend", html);
+        setTimeout(() => document.getElementById(id)?.remove(), 3500);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // USUARIOS
+    // ─────────────────────────────────────────────────────────────────────
+    let _usuariosCache = [];
+
+    async function cargarUsuarios() {
+        try {
+            const resp = await apiFetch("/api/admin/usuarios");
+            _usuariosCache = await resp.json();
+            renderizarUsuarios(_usuariosCache);
+        } catch (e) {
+            mostrarToast("Error al cargar usuarios.", "error");
+        }
+    }
+
+    function renderizarUsuarios(lista) {
+        const body = document.getElementById("bodyUsuarios");
+        if (!lista.length) {
+            body.innerHTML = `<tr><td colspan="8" class="text-center text-secondary py-4">Sin usuarios.</td></tr>`;
+            return;
+        }
+        body.innerHTML = lista.map(u => {
+            const inactivo = !u.activo ? "usuario-inactivo" : "";
+            const estadoBadge = u.activo
+                ? `<span class="badge bg-success">Activo</span>`
+                : `<span class="badge bg-secondary">Baja</span>`;
+
+            const foto = u.foto_url
+                ? `<img src="${u.foto_url}" class="avatar-circle me-2" alt="">`
+                : `<div class="avatar-circle me-2 d-inline-flex align-items-center justify-content-center text-secondary">
+                       <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                           <path d="M8 8a3 3 0 1 0 0-6 3 3 0 0 0 0 6m2-3a2 2 0 1 1-4 0 2 2 0 0 1 4 0m4 8c0 1-1 1-1 1H3s-1 0-1-1 1-4 6-4 6 3 6 4"/>
+                       </svg>
+                   </div>`;
+
+            const fecha = u.fecha_creacion
+                ? new Date(u.fecha_creacion).toLocaleDateString("es-MX")
+                : "—";
+
+            const accionBaja = u.activo
+                ? `<button class="btn btn-sm btn-outline-danger ms-1"
+                           title="Dar de baja"
+                           onclick="darDeBaja(${u.id_usuario}, '${u.username}')">✕</button>`
+                : `<button class="btn btn-sm btn-outline-success ms-1"
+                           title="Reactivar"
+                           onclick="reactivar(${u.id_usuario}, '${u.username}')">✓</button>`;
+
+            return `
+            <tr class="${inactivo}">
+                <td class="text-secondary">${u.id_usuario}</td>
+                <td>
+                    <div class="d-flex align-items-center">
+                        ${foto}
+                        <span>${u.nombre_completo ?? u.username}</span>
+                    </div>
+                </td>
+                <td class="text-secondary small">${u.email}</td>
+                <td>
+                    <span class="badge badge-${u.rol} px-2 py-1">${u.rol}</span>
+                </td>
+                <td>${estadoBadge}</td>
+                <td class="text-secondary small">${u.nombre_instancia ?? "—"}</td>
+                <td class="text-secondary small">${fecha}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary"
+                            title="Cambiar rol"
+                            onclick="abrirModalRol(${u.id_usuario}, '${u.username}')">
+                        ✎ Rol
+                    </button>
+                    ${accionBaja}
+                </td>
+            </tr>`;
+        }).join("");
+    }
+
+    // Filtro de busqueda en tiempo real
+    document.getElementById("buscarUsuario").addEventListener("input", function () {
+        const q = this.value.toLowerCase();
+        const filtrado = _usuariosCache.filter(u =>
+            (u.username      ?? "").toLowerCase().includes(q) ||
+            (u.email         ?? "").toLowerCase().includes(q) ||
+            (u.nombre_completo ?? "").toLowerCase().includes(q)
+        );
+        renderizarUsuarios(filtrado);
+    });
+
+    // Cambiar rol — abre modal
+    function abrirModalRol(idUsuario, nombre) {
+        usuarioEditandoId = idUsuario;
+        document.getElementById("modalRolNombre").textContent = nombre;
+        modalRol.show();
+    }
+
+    async function confirmarRol(nuevoRol) {
+        modalRol.hide();
+        try {
+            const resp = await apiFetch(`/api/admin/usuarios/${usuarioEditandoId}/rol`, {
+                method: "PUT",
+                body: JSON.stringify({ rol: nuevoRol })
+            });
+            const data = await resp.json();
+            if (data.status === "success") {
+                mostrarToast(`Rol cambiado a ${nuevoRol} correctamente.`);
+                cargarUsuarios(); // recarga la tabla
+            } else {
+                mostrarToast(data.mensaje ?? "Error al cambiar rol.", "error");
+            }
+        } catch (e) {
+            mostrarToast("Error de red al cambiar rol.", "error");
+        }
+    }
+
+    // Dar de baja
+    async function darDeBaja(idUsuario, nombre) {
+        if (!confirm(`¿Dar de baja a "${nombre}"?\nEl usuario perderá el acceso al sistema.`)) return;
+        try {
+            const resp = await apiFetch(`/api/admin/usuarios/${idUsuario}/baja`, { method: "PUT" });
+            const data = await resp.json();
+            mostrarToast(data.mensaje, data.status === "success" ? "success" : "error");
+            if (data.status === "success") cargarUsuarios();
+        } catch (e) {
+            mostrarToast("Error de red.", "error");
+        }
+    }
+
+    // Reactivar
+    async function reactivar(idUsuario, nombre) {
+        if (!confirm(`¿Reactivar a "${nombre}"?`)) return;
+        try {
+            const resp = await apiFetch(`/api/admin/usuarios/${idUsuario}/reactivar`, { method: "PUT" });
+            const data = await resp.json();
+            mostrarToast(data.mensaje, data.status === "success" ? "success" : "error");
+            if (data.status === "success") cargarUsuarios();
+        } catch (e) {
+            mostrarToast("Error de red.", "error");
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // BRAZOS
+    // ─────────────────────────────────────────────────────────────────────
+    async function cargarBrazos() {
+        try {
+            const resp  = await apiFetch("/api/admin/brazos");
+            const lista = await resp.json();
+            const body  = document.getElementById("bodyBrazos");
+
+            if (!lista.length) {
+                body.innerHTML = `<tr><td colspan="6" class="text-center text-secondary py-4">Sin brazos registrados.</td></tr>`;
+                return;
+            }
+
+            body.innerHTML = lista.map(b => {
+                // Parseamos los ángulos JSONB para mostrarlos resumidos
+                let angulos = "—";
+                try {
+                    const obj = typeof b.angulos_jsonb === "string"
+                        ? JSON.parse(b.angulos_jsonb)
+                        : b.angulos_jsonb;
+                    if (obj) {
+                        angulos = Object.entries(obj)
+                            .map(([k, v]) => `${k}: ${Number(v).toFixed(1)}°`)
+                            .join(" | ");
+                    }
+                } catch (_) {}
+
+                const tipo     = b.es_simulado
+                    ? `<span class="badge bg-warning text-dark">Simulado</span>`
+                    : `<span class="badge bg-success">Físico</span>`;
+
+                const propOwner = b.usuario_activo
+                    ? b.username
+                    : `<span class="text-secondary">${b.username} (baja)</span>`;
+
+                const ultima = b.ultima_actualizacion
+                    ? new Date(b.ultima_actualizacion).toLocaleString("es-MX")
+                    : "Sin datos";
+
+                return `
+                <tr>
+                    <td class="text-secondary">${b.id_brazo}</td>
+                    <td>${b.nombre_instancia}</td>
+                    <td>${propOwner}<br><small class="text-secondary">${b.email}</small></td>
+                    <td>${tipo}</td>
+                    <td class="text-secondary small">${ultima}</td>
+                    <td class="text-secondary small font-monospace">${angulos}</td>
+                </tr>`;
+            }).join("");
+        } catch (e) {
+            mostrarToast("Error al cargar brazos.", "error");
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+    // LOGS
+    // ─────────────────────────────────────────────────────────────────────
+    document.getElementById("limiteLogs").addEventListener("change", cargarLogs);
+
+    async function cargarLogs() {
+        const limite = document.getElementById("limiteLogs").value;
+        try {
+            const resp  = await apiFetch(`/api/admin/logs?limite=${limite}`);
+            const lista = await resp.json();
+            const body  = document.getElementById("bodyLogs");
+
+            if (!lista.length) {
+                body.innerHTML = `<tr><td colspan="6" class="text-center text-secondary py-4">Sin eventos registrados.</td></tr>`;
+                return;
+            }
+
+            body.innerHTML = lista.map(l => {
+                // Color de la fila segun el codigo de error
+                const cod  = (l.codigo_error ?? "").toUpperCase();
+                const fila = cod.includes("ERR") ? "log-row-error"
+                           : cod.includes("WARN") ? "log-row-warning"
+                           : "log-row-info";
+
+                const fecha = l.fecha_log
+                    ? new Date(l.fecha_log).toLocaleString("es-MX")
+                    : "—";
+
+                return `
+                <tr class="${fila}">
+                    <td class="text-secondary">${l.id_log}</td>
+                    <td>${l.nombre_instancia ?? l.id_brazo}</td>
+                    <td>${l.username ?? "—"}</td>
+                    <td><code>${l.codigo_error}</code></td>
+                    <td>${l.mensaje}</td>
+                    <td class="text-secondary small text-nowrap">${fecha}</td>
+                </tr>`;
+            }).join("");
+        } catch (e) {
+            mostrarToast("Error al cargar bitacora.", "error");
+        }
+    }
+</script>
+</body>
+</html>
