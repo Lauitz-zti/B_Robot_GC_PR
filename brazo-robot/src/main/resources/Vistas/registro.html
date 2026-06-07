@@ -10,14 +10,14 @@
 
     <div class="card bg-secondary text-white shadow-lg" style="width: 28rem;">
         <div class="card-body p-5">
-            <h3 class="card-title text-center mb-4">Alta de Nuevo Operador</h3>
+            <h3 class="card-title text-center mb-4">Regsitrate</h3>
             
             <div id="formularioRegistro">
                 <label class="form-label">Correo electronico</label>
-                <input type="email" id="txtEmailReg" class="form-control mb-3" placeholder="ejemplo@universidad.edu">
+                <input type="email" id="txtEmailReg" class="form-control mb-3" placeholder="ejemplo@email.com">
                 
                 <label class="form-label">Contraseña</label>
-                <input type="password" id="txtPasswordReg" class="form-control mb-3" placeholder="Mínimo 6 caracteres">
+                <input type="password" id="txtPasswordReg" class="form-control mb-3" placeholder="Minnimo 6 caracteres">
                 
                 <label class="form-label">Confirmar Contraseña</label>
                 <input type="password" id="txtPasswordConfirm" class="form-control mb-4" placeholder="Repite la contraseña">
@@ -25,7 +25,7 @@
                 <button id="btnCrearCuenta" class="btn btn-primary w-100 fw-bold py-2">
                     Crear Cuenta Segura
                 </button>
-                <a href="index.html" class="btn btn-link text-light w-100 mt-2 text-decoration-none">
+                <a href="inicioSesion.html" class="btn btn-link text-light w-100 mt-2 text-decoration-none">
                     Volver al inicio de sesion
                 </a>
             </div>
@@ -34,6 +34,7 @@
         </div>
     </div>
 
+    
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
         import { getAuth, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
@@ -85,7 +86,8 @@
             createUserWithEmailAndPassword(auth, email, password)
                 .then(userCredential => userCredential.user.getIdToken())
                 .then(idToken => {
-                    return fetch('http://localhost:8080/api/auth/verificar-token', {
+                    const baseUrl = window.location.origin;
+                    return fetch(`${baseUrl}/api/auth/verificar-token`, { 
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ token: idToken })

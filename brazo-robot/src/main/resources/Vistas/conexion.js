@@ -1,0 +1,167 @@
+// ==========================================
+// SEGURIDAD INICIAL
+// ==========================================
+const idDinamico = localStorage.getItem("brazoActivo");
+const tokenFirebase = localStorage.getItem("firebaseToken");
+
+if (!idDinamico || !tokenFirebase) {
+    alert("No hay conexión activa. Regresando a seguridad...");
+    window.location.replace("inicioSesion.html");
+}
+
+// ==========================================
+// CONEXION WEBSOCKET
+// ==========================================
+const protocoloWS = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+const host = window.location.host;
+const wsUrl = `${protocoloWS}${host}/ws/brazo?token=${tokenFirebase}`;
+
+const socket = new WebSocket(wsUrl);
+const badgeConexion = document.getElementById('badgeConexion');
+
+socket.onopen = () => {
+    console.log("Conectado al servidor de alta velocidad.");
+    badgeConexion.className = "badge bg-success fs-6 py-2 px-3 rounded-pill shadow-sm";
+    badgeConexion.innerText = "En Línea (WS)";
+    // Registra la IP real en la base de datos al abrir la sesion
+    fetch('/api/puente/conectar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id_brazo: parseInt(idDinamico) })
+    }).catch(err => console.error("Error registrando IP:", err));
+};
+
+socket.onclose = () => {
+    badgeConexion.className = "badge bg-danger fs-6 py-2 px-3 rounded-pill shadow-sm";
+    badgeConexion.innerText = "Desconectado";
+
+    // Apaga el estado en la base de datos cuando se cierra la sesion
+    fetch('/api/puente/desconectar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id_brazo: parseInt(idDinamico) })
+    }).catch(err => console.error("Error marcando desconexión:", err));
+};
+
+socket.onmessage = (evento) => {
+    const payload = JSON.parse(evento.data);
+
+    if (payload.id_brazo === parseInt(idDinamico)) {
+        if (payload.angulos) {
+            const a = payload.angulos;
+            const ejes = ['Base', 'Shoulder', 'Elbow', 'Wrist1', 'Wrist2', 'Wrist3'];
+
+            ejes.forEach(eje => {
+                const key = eje.toLowerCase();
+                const val = a[key] || 0;
+                document.getElementById(`rango${eje}`).value = val;
+                document.getElementById(`val${eje}`).innerText = `${parseFloat(val).toFixed(2)}°`;
+            });
+
+            if (window.RobotVisor) {
+                window.RobotVisor.moverBase(a.base);
+                window.RobotVisor.moverShoulder(a.shoulder);
+                window.RobotVisor.moverElbow(a.elbow);
+                window.RobotVisor.moverWrist1(a.wrist1);
+                window.RobotVisor.moverWrist2(a.wrist2);
+                window.RobotVisor.moverWrist3(a.wrist3);
+            }
+        }
+    }
+};
+
+// ==========================================
+//TRANSMISOR Y CONTROLES
+// ==========================================
+function enviarMovimiento() {
+    if (socket.readyState === WebSocket.OPEN) {
+        const payload = {
+            tipo: "MANUAL",
+            id_brazo: parseInt(idDinamico),
+            angulos: {
+                base:     parseFloat(document.getElementById('rangoBase').value),
+                shoulder: parseFloat(document.getElementById('rangoShoulder').value),
+                elbow:    parseFloat(document.getElementById('rangoElbow').value),
+                wrist1:   parseFloat(document.getElementById('rangoWrist1').value),
+                wrist2:   parseFloat(document.getElementById('rangoWrist2').value),
+                wrist3:   parseFloat(document.getElementById('rangoWrist3').value)
+            }
+        };
+        socket.send(JSON.stringify(payload));
+    }
+}
+
+const controles = ['Base', 'Shoulder', 'Elbow', 'Wrist1', 'Wrist2', 'Wrist3'];
+
+controles.forEach(eje => {
+    const slider = document.getElementById(`rango${eje}`);
+    const texto  = document.getElementById(`val${eje}`);
+
+    slider.addEventListener('input', (event) => {
+        const valor = parseFloat(event.target.value).toFixed(2);
+        texto.innerText = `${valor}°`;
+
+        if (window.RobotVisor && window.RobotVisor[`mover${eje}`]) {
+            window.RobotVisor[`mover${eje}`](valor);
+        }
+
+        enviarMovimiento();
+    });
+});
+
+// ==========================================
+//ARRANQUE INICIAL Y CIERRE
+// ==========================================
+
+function aplicarAngulos(angulos) {
+    const ejes = ['Base', 'Shoulder', 'Elbow', 'Wrist1', 'Wrist2', 'Wrist3'];
+
+    ejes.forEach(eje => {
+        const key = eje.toLowerCase();
+        const val = angulos[key] ?? 0;
+        document.getElementById(`rango${eje}`).value = val;
+        document.getElementById(`val${eje}`).innerText = `${parseFloat(val).toFixed(2)}°`;
+    });
+
+    if (window.RobotVisor) {
+        window.RobotVisor.moverBase(angulos.base);
+        window.RobotVisor.moverShoulder(angulos.shoulder);
+        window.RobotVisor.moverElbow(angulos.elbow);
+        window.RobotVisor.moverWrist1(angulos.wrist1);
+        window.RobotVisor.moverWrist2(angulos.wrist2);
+        window.RobotVisor.moverWrist3(angulos.wrist3); 
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    if (typeof inicializarEntorno3D === 'function') {
+        inicializarEntorno3D('contenedor3D');
+    }
+
+    const baseUrl = window.location.origin;
+    fetch(`${baseUrl}/api/brazo/estado/${idDinamico}`)
+        .then(res => res.json())
+        .then(datos => {
+            if (datos.status === "success" && datos.angulos) {
+                aplicarAngulos(datos.angulos);
+            }
+        })
+        .catch(err => console.log("Estado inicial no disponible aún:", err));
+});
+
+document.getElementById('btnCerrarSesion').addEventListener('click', async () => {
+    //Avisar del cierre
+    try {
+        await fetch('/api/puente/desconectar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id_brazo: parseInt(idDinamico) })
+        });
+    } catch (error) {
+        console.error("No se pudo avisar al servidor", error);
+    }
+    
+    localStorage.removeItem("brazoActivo");
+    localStorage.removeItem("firebaseToken");
+    window.location.replace("inicioSesion.html");
+});

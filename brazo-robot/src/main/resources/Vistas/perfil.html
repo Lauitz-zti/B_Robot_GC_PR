@@ -3,78 +3,218 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mi Perfil</title>
+    <title>Brazor - Mi Perfil</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    
     <style>
         body {
-            background-color: #0b0f19; /* Tono oscuro profundo y frio */
-            color: #e2e8f0; /* Gris platinado/plateado para texto */
+            font-family: 'Outfit', sans-serif;
+            background: radial-gradient(circle at top left, #0f172a 0%, #020617 100%);
+            color: #f8fafc;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
         }
-        .card-perfil {
-            background-color: #111827;
-            border: 1px solid #374151;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+
+        .glass-card {
+            background: rgba(30, 41, 59, 0.4);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
         }
-        .foto-perfil {
-            width: 150px;
-            height: 150px;
-            object-fit: cover;
-            border: 4px solid #4b5563; /* Borde platinado frio */
+
+        .glass-header {
+            background: rgba(255, 255, 255, 0.02);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* ── EFECTO HOVER EN LA FOTO DE PERFIL ── */
+        .avatar-container {
+            position: relative;
+            display: inline-block;
+            cursor: pointer; /* Cambia el cursor a una manita */
             border-radius: 50%;
-            background-color: #1f2937;
         }
-        .btn-guardar {
-            background-color: #2563eb; /* Azul frio y vibrante */
+        
+        .foto-perfil {
+            width: 140px;
+            height: 140px;
+            object-fit: cover;
+            border-radius: 50%;
+            padding: 4px;
+            background: linear-gradient(135deg, #38bdf8 0%, #3b82f6 100%);
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        /* Capa oscura con icono que aparece al pasar el raton */
+        .avatar-overlay {
+            position: absolute;
+            top: 4px; left: 4px; right: 4px; bottom: 4px;
+            background: rgba(15, 23, 42, 0.7);
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            color: #f8fafc;
+        }
+
+        .avatar-container:hover .avatar-overlay {
+            opacity: 1;
+        }
+        .avatar-container:hover .foto-perfil {
+            transform: scale(1.02);
+        }
+
+        /* Inputs estilizados */
+        .custom-input {
+            background: rgba(15, 23, 42, 0.6) !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+            color: #e2e8f0 !important;
+            border-radius: 12px;
+            padding: 0.8rem 1rem;
+            font-weight: 300;
+            transition: all 0.3s;
+        }
+        .custom-input:focus {
+            background: rgba(15, 23, 42, 0.9) !important;
+            border-color: #38bdf8 !important;
+            box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.15) !important;
+        }
+        .custom-label {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #94a3b8;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+
+        /* Boton con degradado */
+        .btn-gradient {
+            background: linear-gradient(135deg, #38bdf8 0%, #2563eb 100%);
             border: none;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            padding: 0.8rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 20px -10px rgba(56, 189, 248, 0.6);
         }
-        .btn-guardar:hover {
-            background-color: #1d4ed8;
+        .btn-gradient:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 25px -10px rgba(56, 189, 248, 0.8);
+        }
+
+        .btn-back {
+            color: #94a3b8;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+        .btn-back:hover {
+            color: #f8fafc;
         }
     </style>
 </head>
 <body>
-    <div class="container mt-5">
+    <div class="container py-5 w-100">
         <div class="row justify-content-center">
-            <div class="col-md-8 col-lg-6">
-                
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2 class="fw-bold">Configuracion de Cuenta</h2>
-                    <a href="panel.html" class="btn btn-outline-secondary text-light">Volver al Laboratorio</a>
+            <div class="col-12 col-md-8 col-lg-6 col-xl-5">
+
+                <div id="alertaError" class="alert alert-danger shadow-sm border-0 rounded-4" style="display:none;" role="alert"></div>
+                <div id="alertaExito" class="alert alert-success shadow-sm border-0 rounded-4" style="display:none;" role="alert"></div>
+
+                <div class="glass-card">
+                    
+                    <div class="glass-header p-4 d-flex justify-content-between align-items-center">
+                        <h4 class="fw-bold m-0 text-white">Mi Perfil</h4>
+                        <a href="panel.html" class="btn-back">
+                            <i class="bi bi-box-arrow-left me-1"></i> Laboratorio
+                        </a>
+                    </div>
+
+                    <div class="p-4 p-md-5">
+                        
+                        <div class="text-center mb-5">
+                            <div class="avatar-container" onclick="document.getElementById('perfilFotoFile').click()">
+                                <img id="imgAvatar" src="https://via.placeholder.com/150/0f172a/e2e8f0?text=USR" alt="Foto" class="foto-perfil">
+                                <div class="avatar-overlay">
+                                    <i class="bi bi-camera fs-3 mb-1"></i>
+                                    <span style="font-size: 0.75rem; font-weight: 600;">Cambiar</span>
+                                </div>
+                            </div>
+                            
+                            <input type="file" id="perfilFotoFile" class="d-none" accept="image/*">
+                            <input type="hidden" id="perfilFotoUrl">
+                            <input type="hidden" id="perfilIdUsuario">
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="custom-label">Identificador</label>
+                            <input type="text" class="form-control custom-input" id="perfilNombre" placeholder="Tu nombre en el sistema">
+                        </div>
+
+                        <div class="mb-5">
+                            <label class="custom-label">Acerca de mi</label>
+                            <textarea class="form-control custom-input" id="perfilBio" rows="3" placeholder="Ej. Estudiante de informatica..."></textarea>
+                        </div>
+
+                        <div class="d-grid mt-2">
+                            <button type="button" class="btn btn-gradient" id="btnGuardarPerfil">
+                                Guardar Cambios
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="card card-perfil p-4 rounded-4">
-                    
-                    <div class="text-center mb-4">
-                        <img id="imgAvatar" src="https://via.placeholder.com/150/1f2937/FFFFFF?text=Usuario" alt="Foto de Perfil" class="foto-perfil mb-3 shadow">
-                        <input type="hidden" id="perfilIdUsuario">
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Nombre Usuario</label>
-                        <input type="text" class="form-control bg-dark text-light border-secondary" id="perfilNombre">
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Foto de Perfil</label>
-                        <input type="url" class="form-control bg-dark text-light border-secondary" id="perfilFoto" placeholder="https://ejemplo.com/mifoto.jpg">
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Acerca de mi</label>
-                        <textarea class="form-control bg-dark text-light border-secondary" id="perfilBio" rows="4" placeholder="Estudiante de ingeniería, desarrollador..."></textarea>
-                    </div>
-
-                    <div class="d-grid">
-                        <button type="button" class="btn btn-guardar text-white fw-bold py-2 shadow" id="btnGuardarPerfil">Guardar Cambios</button>
-                    </div>
-
-                </div>
             </div>
         </div>
     </div>
 
     <script>
-        //Verificar si el usuario tiene un brazo activo, si no, redirigir al inicio de sesión
+        const baseUrl = window.location.origin;
+
+        function mostrarError(msg) {
+            const el = document.getElementById('alertaError');
+            el.innerText = msg;
+            el.style.display = 'block';
+            document.getElementById('alertaExito').style.display = 'none';
+        }
+        function mostrarExito(msg) {
+            const el = document.getElementById('alertaExito');
+            el.innerText = msg;
+            el.style.display = 'block';
+            document.getElementById('alertaError').style.display = 'none';
+        }
+        function ocultarAlertas() {
+            document.getElementById('alertaError').style.display = 'none';
+            document.getElementById('alertaExito').style.display = 'none';
+        }
+
+        //PRE-VISUALIZAR LA IMAGEN ANTES DE SUBIR 
+        document.getElementById('perfilFotoFile').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    // Cambiamos el src de la imagen temporalmente para que el usuario la vea
+                    document.getElementById('imgAvatar').src = e.target.result;
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
         document.addEventListener('DOMContentLoaded', () => {
             const idBrazo = localStorage.getItem("brazoActivo");
             if (!idBrazo) {
@@ -82,55 +222,117 @@
                 return;
             }
 
-            //Cargar los datos del perfil usando el ID del brazo activo
-            fetch(`http://localhost:8080/api/perfil/obtener-por-brazo/${idBrazo}`)
-            .then(res => res.json())
-            .then(datos => {
-                if(datos.status === "success") {
-                    document.getElementById('perfilIdUsuario').value = datos.id_usuario;
-                    document.getElementById('perfilNombre').value = datos.nombre_completo || '';
-                    document.getElementById('perfilBio').value = datos.bio || '';
-                    document.getElementById('perfilTema').value = datos.tema_interfaz || 'dark';
-                    
-                    // Manejo de la imagen de perfil
-                    //aun por verse, implementar con ayuda de firebase
+            fetch(`${baseUrl}/api/perfil/obtener-por-brazo/${idBrazo}`)
+                .then(res => {
+                    if (!res.ok) throw new Error(`Error HTTP ${res.status} al cargar perfil`);
+                    return res.json();
+                })
+                .then(datos => {
+                    if (datos.status === "success") {
+                        const idUsuario = datos.id_usuario;
+                        if (!idUsuario || isNaN(parseInt(idUsuario))) {
+                            mostrarError("No se pudo obtener el ID de usuario. Intenta cerrar sesion y volver a entrar.");
+                            return;
+                        }
 
-                }
-            })
-            .catch(err => console.error("Error al cargar perfil:", err));
+                        document.getElementById('perfilIdUsuario').value = idUsuario;
+                        document.getElementById('perfilNombre').value = datos.nombre_completo || '';
+                        document.getElementById('perfilBio').value = datos.bio || '';
+
+                        if (datos.foto_url) {
+                            document.getElementById('imgAvatar').src = datos.foto_url;
+                            document.getElementById('perfilFotoUrl').value = datos.foto_url;
+                        }
+                    } else {
+                        mostrarError("No se pudo cargar el perfil: " + (datos.mensaje || "Error desconocido"));
+                    }
+                })
+                .catch(err => {
+                    console.error("Error al cargar perfil:", err);
+                    mostrarError("Error de conexion al cargar el perfil: " + err.message);
+                });
         });
 
-        //Guardar los cambios del perfil
-        document.getElementById('btnGuardarPerfil').addEventListener('click', () => {
+        document.getElementById('btnGuardarPerfil').addEventListener('click', async () => {
+            ocultarAlertas();
+
             const btn = document.getElementById('btnGuardarPerfil');
-            btn.innerText = "Guardando...";
+            btn.innerText = "Procesando...";
             btn.disabled = true;
 
-            const payload = {
-                id_usuario: parseInt(document.getElementById('perfilIdUsuario').value),
-                nombre_completo: document.getElementById('perfilNombre').value,
-                //aqui debe ir la logica para subir la imagen a firebase y obtener la URL
-                bio: document.getElementById('perfilBio').value,
-                tema_interfaz: document.getElementById('perfilTema').value
-            };
+            const archivoFoto = document.getElementById('perfilFotoFile').files[0];
+            let urlFinal = document.getElementById('perfilFotoUrl').value;
 
-            fetch('http://localhost:8080/api/perfil/actualizar', {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            })
-            .then(res => res.json())
-            .then(datos => {
-                if(datos.status === "success") {
-                    alert("Perfil actualizado correctamente.");
-                } else {
-                    alert("Error: " + datos.mensaje);
-                }
-            })
-            .finally(() => {
-                btn.innerText = "Guardar Cambios";
+            const idUsuarioRaw = document.getElementById('perfilIdUsuario').value;
+            const idUsuario = parseInt(idUsuarioRaw);
+
+            if (!idUsuarioRaw || isNaN(idUsuario) || idUsuario <= 0) {
+                mostrarError("No se pudo identificar tu usuario. Recarga la pagina e intenta de nuevo.");
+                btn.innerText = "Sincronizar Cambios";
                 btn.disabled = false;
-            });
+                return; 
+            }
+
+            try {
+                if (archivoFoto) {
+                    btn.innerText = "Subiendo archivo...";
+                    const formData = new FormData();
+                    formData.append('image', archivoFoto);
+                    const uploadRes = await fetch(`${baseUrl}/api/perfil/subir-foto`, {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (!uploadRes.ok) {
+                        const errData = await uploadRes.json().catch(() => ({}));
+                        throw new Error(errData.mensaje || `Error HTTP ${uploadRes.status} al subir imagen`);
+                    }
+
+                    const uploadData = await uploadRes.json();
+
+                    if (uploadData.status === "success") {
+                        urlFinal = uploadData.url;
+                        document.getElementById('perfilFotoUrl').value = urlFinal;
+                    } else {
+                        throw new Error(uploadData.mensaje || "Error desconocido al subir la imagen");
+                    }
+                }
+
+                btn.innerText = "Sincronizando red...";
+
+                const payload = {
+                    id_usuario: idUsuario,
+                    nombre_completo: document.getElementById('perfilNombre').value,
+                    foto_url: urlFinal,
+                    bio: document.getElementById('perfilBio').value
+                };
+
+                const res = await fetch(`${baseUrl}/api/perfil/actualizar`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!res.ok) {
+                    const errData = await res.json().catch(() => ({}));
+                    throw new Error(errData.mensaje || `Error HTTP ${res.status} al guardar cambios`);
+                }
+
+                const datos = await res.json();
+
+                if (datos.status === "success") {
+                    mostrarExito("Perfil actualizado correctamente.");
+                } else {
+                    throw new Error(datos.mensaje || "Error desconocido al guardar");
+                }
+
+            } catch (error) {
+                console.error("Error al guardar perfil:", error);
+                mostrarError("Error: " + error.message);
+            } finally {
+                btn.innerText = "Sincronizar Cambios";
+                btn.disabled = false;
+            }
         });
     </script>
 </body>
