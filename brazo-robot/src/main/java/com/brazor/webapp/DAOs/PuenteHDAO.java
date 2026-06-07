@@ -14,22 +14,25 @@ public class PuenteHDAO {
     public PuenteHDAO(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
     }
+    
 
-    //Actualiza el ping del brazo
-    public boolean actualizarPing(int idBrazo, int latenciaMs) {
-        String sql = "UPDATE hardware_bridge SET estado_conexion = TRUE, latencia_ms = ?, last_ping = CURRENT_TIMESTAMP WHERE id_brazo = ?";
+    // Registra la IP real al momento de conectarse
+    public boolean registrarConexion(int idBrazo, String ipCliente) {
+        String sql = "INSERT INTO puente_hardware (id_brazo, ip_maquina_java, estado_conexion) " +
+                     "VALUES (?, ?, TRUE) " +
+                     "ON CONFLICT (id_brazo) " +
+                     "DO UPDATE SET ip_maquina_java = EXCLUDED.ip_maquina_java, estado_conexion = TRUE";
         try {
-            int filasAfectadas = jdbcTemplate.update(sql, latenciaMs, idBrazo);
-            return filasAfectadas > 0;
+            return jdbcTemplate.update(sql, idBrazo, ipCliente) > 0;
         } catch (Exception e) {
-            System.err.println("Error en TelemetriaDAO al actualizar ping: " + e.getMessage());
+            System.err.println("Error al registrar conexión: " + e.getMessage());
             return false;
         }
     }
 
     //Mide el tiempo de inactividad para mostrarlo en la pagina web
     public Map<String, Object> obtenerEstadoConexion(int idBrazo) {
-        String sql = "SELECT estado_conexion, EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - last_ping)) AS segundos_inactivo FROM hardware_bridge WHERE id_brazo = ?";
+        String sql = "SELECT estado_conexion, EXTRACT(EPOCH FROM (CURRENT_TIMESTAMP - last_ping)) AS segundos_inactivo FROM puente_hardware WHERE id_brazo = ?";
         try {
             return jdbcTemplate.queryForMap(sql, idBrazo);
         } catch (Exception e) {
@@ -40,7 +43,7 @@ public class PuenteHDAO {
 
     //Apagamos la conexion si no hay respuesta 
     public void marcarDesconectado(int idBrazo) {
-        String sql = "UPDATE hardware_bridge SET estado_conexion = FALSE WHERE id_brazo = ?";
+        String sql = "UPDATE puente_hardware SET estado_conexion = FALSE WHERE id_brazo = ?";
         try {
             jdbcTemplate.update(sql, idBrazo);
         } catch (Exception e) {

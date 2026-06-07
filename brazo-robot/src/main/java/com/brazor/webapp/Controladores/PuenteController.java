@@ -2,6 +2,9 @@ package com.brazor.webapp.Controladores;
 
 import com.brazor.webapp.DAOs.PuenteHDAO;
 import com.brazor.webapp.Modelos.PuenteHardware;
+
+import jakarta.servlet.http.HttpServletRequest;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,32 +22,27 @@ public class PuenteController {
         this.telemetriaDAO = telemetriaDAO;
     }
 
-    //Ruata para recibir el ping del brazo (envia los datos de movimiento y latencia)
-    @PostMapping("/ping")
-    public ResponseEntity<Map<String, Object>> recibirPing(@RequestBody PuenteHardware telemetriaEntrante) {
-        Map<String, Object> respuesta = new HashMap<>();
-        try {
-            // Extraemos los datos usando tu Modelo
-            int idBrazo = telemetriaEntrante.getIdBrazo();
-            int latencia = telemetriaEntrante.getLatenciaMs();
+    @PostMapping("/conectar")
+    public ResponseEntity<Map<String, Object>> conectarCliente(@RequestBody Map<String, Integer> payload, HttpServletRequest request) {
+        int idBrazo = payload.get("id_brazo");
+        String ipCliente = request.getRemoteAddr(); // IP 100% real
             
-            // Le pedimos al DAO que haga el trabajo sucio
-            boolean exito = telemetriaDAO.actualizarPing(idBrazo, latencia);
-
-            if (exito) {
-                respuesta.put("status", "success");
-                return ResponseEntity.ok(respuesta);
-            } else {
-                respuesta.put("status", "error");
-                respuesta.put("mensaje", "No se encontró el puente de hardware.");
-                return ResponseEntity.badRequest().body(respuesta);
-            }
-        } catch (Exception e) {
-            respuesta.put("status", "error");
-            respuesta.put("mensaje", "Datos de telemetría inválidos.");
-            return ResponseEntity.badRequest().body(respuesta);
+        telemetriaDAO.registrarConexion(idBrazo, ipCliente);
+            
+        Map<String, Object> respuesta = new HashMap<>();
+        respuesta.put("status", "success");
+        return ResponseEntity.ok(respuesta);
         }
-    }
+
+    @PostMapping("/desconectar")
+    public ResponseEntity<Map<String, Object>> desconectarCliente(@RequestBody Map<String, Integer> payload) {
+        int idBrazo = payload.get("id_brazo");
+        telemetriaDAO.marcarDesconectado(idBrazo);
+            
+        Map<String, Object> respuesta = new HashMap<>();
+        respuesta.put("status", "success");
+        return ResponseEntity.ok(respuesta);
+        }
 
     //Verifica el estado de conexion del brazo y el tiempo de inactividad para mostrarlo en la pagina web
     @GetMapping("/estado/{idBrazo}")
