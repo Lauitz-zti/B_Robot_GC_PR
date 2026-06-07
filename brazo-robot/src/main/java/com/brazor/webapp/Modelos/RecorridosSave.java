@@ -1,11 +1,13 @@
 package com.brazor.webapp.Modelos;
 
+import java.sql.Timestamp;
+
 public class RecorridosSave {
     private int idRecorrido;
     private int idBrazo;
     private String nombreEstudio;
     private String secuenciaJsonb; // Se almacena como String para mapear el JSONB de Postgres
-    private java.sql.Timestamp fechaCreacion;
+    private Timestamp fechaCreacion;
 
     public RecorridosSave() {}
 
