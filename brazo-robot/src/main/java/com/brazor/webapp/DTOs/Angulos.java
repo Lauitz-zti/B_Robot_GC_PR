@@ -1,52 +1,52 @@
 package com.brazor.webapp.DTOs;
 
 public class Angulos {
-    private int base;
-    private int hombro;
-    private int codo;
-    private int pitch;
-    private int roll;
-    private int yaw;
+    private double base;
+    private double shoulder;
+    private double elbow;
+    private double wrist1;
+    private double wrist2;
+    private double wrist3;
 
     public Angulos() {}
 
     // Getters
-    public int getBase(){
+    public double getBase() {
         return base; 
     }
-    public int getHombro(){
-        return hombro;
+    public double getShoulder() {
+        return shoulder;
     }
-    public int getCodo() {
-        return codo; 
+    public double getElbow() {
+        return elbow; 
     }
-    public int getPitch(){
-        return pitch; 
+    public double getWrist1() {
+        return wrist1; 
     }
-    public int getRoll(){
-        return roll;
+    public double getWrist2() {
+        return wrist2; 
     }
-    public int getYaw() {
-        return yaw; 
+    public double getWrist3() {
+        return wrist3; 
     }
 
     // Setters
-    public void setBase(int base) {
+    public void setBase(double base) {
         this.base = base;
     }
-    public void setHombro(int hombro) {
-        this.hombro = hombro; 
+    public void setShoulder(double shoulder) {
+        this.shoulder = shoulder;
     }
-    public void setCodo(int codo) {
-        this.codo = codo; 
+    public void setElbow(double elbow) {
+        this.elbow = elbow;
     }
-    public void setPitch(int pitch) {
-        this.pitch = pitch; 
+    public void setWrist1(double wrist1) {
+        this.wrist1 = wrist1;
     }
-    public void setRoll(int roll) {
-        this.roll = roll; 
+    public void setWrist2(double wrist2) {
+        this.wrist2 = wrist2;
     }
-    public void setYaw(int yaw) {
-        this.yaw = yaw;
+    public void setWrist3(double wrist3) {
+        this.wrist3 = wrist3;
     }
 }

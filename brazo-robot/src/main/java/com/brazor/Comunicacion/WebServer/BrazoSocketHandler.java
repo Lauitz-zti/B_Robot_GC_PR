@@ -1,6 +1,7 @@
 package com.brazor.Comunicacion.WebServer;
 
 import com.brazor.webapp.DAOs.BrazoDAO;
+import com.brazor.webapp.DTOs.Angulos;
 import com.brazor.webapp.DTOs.Estado;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.firebase.auth.FirebaseAuth;
@@ -19,76 +20,144 @@ import java.util.Set;
 @Component
 public class BrazoSocketHandler extends TextWebSocketHandler {
 
-    // Lista sincronizada para llevar el control de todos los navegadores conectados
     private static final Set<WebSocketSession> sesionesActivas = Collections.synchronizedSet(new HashSet<>());
-    
+
     private final BrazoDAO brazoDAO;
     private final ObjectMapper objectMapper;
-    private final FirebaseAuth firebaseAuth; // 1. Agregamos Firebase
+    private final FirebaseAuth firebaseAuth;
+    private final RobotCliente robotCliente;
 
-    public BrazoSocketHandler(BrazoDAO brazoDAO, FirebaseAuth firebaseAuth) {
+    public BrazoSocketHandler(BrazoDAO brazoDAO, FirebaseAuth firebaseAuth, RobotCliente robotCliente) {
         this.brazoDAO = brazoDAO;
         this.objectMapper = new ObjectMapper();
         this.firebaseAuth = firebaseAuth;
+        this.robotCliente = robotCliente;
+        this.robotCliente.conectar();
     }
 
-    //Cuando inicia la conexión con el navegador (equivalente al TCP que teniamos antes "Cliente conectado desde IP: ...")
+
+    //Valida las sesiones activas 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-        // 3. Extraemos el token de la URL (ws://.../?token=ABC)
         String query = session.getUri().getQuery();
         String tokenRecibido = null;
+
         if (query != null && query.contains("token=")) {
             tokenRecibido = query.split("token=")[1];
         }
 
         try {
-            // 4. Validamos directamente con los servidores de Google
-            if (tokenRecibido != null) {
-                FirebaseToken decodedToken = firebaseAuth.verifyIdToken(tokenRecibido);
-                
-                sesionesActivas.add(session);
-                System.out.println("[WebSocket] Gemelo Digital autorizado para: " + decodedToken.getEmail());
-            } else {
+            if (tokenRecibido == null) {
                 throw new Exception("Sin token en la URL.");
             }
+            FirebaseToken decodedToken = firebaseAuth.verifyIdToken(tokenRecibido);
+            sesionesActivas.add(session);
+            System.out.println("[WebSocket] Gemelo Digital autorizado para: " + decodedToken.getEmail());
+
         } catch (Exception e) {
             System.err.println("[Seguridad] Conexión WebSocket rechazada: " + e.getMessage());
             session.close(CloseStatus.NOT_ACCEPTABLE);
         }
     }
 
-    //Cuando se cierra la conexion con el navegador (equivalente al TCP que teniamos antes "Cliente desconectado desde IP: ...")
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
         sesionesActivas.remove(session);
         System.out.println("[WebSocket] Gemelo Digital desconectado. ID Sesion: " + session.getId());
     }
 
-    // Cuando recibimos un comando de movimiento (Equivalente a tu antiguo TCP "MOVE_BASE:1.5")
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
         try {
-            // 1. Desempaquetamos el JSON usando tu Modelo estricto
             String payloadJson = message.getPayload();
             Estado payload = objectMapper.readValue(payloadJson, Estado.class);
-
-            //gurdamos el nuevo estado del robot en la base de datos
             int idBrazo = payload.getId_brazo();
-            String jsonAngulos = objectMapper.writeValueAsString(payload.getAngulos());
-            brazoDAO.actualizarPosicion(idBrazo, jsonAngulos);
 
-            //BROADCAST: (Equivalente a tu antiguo UdpSender)
-            // Le avisamos a TODOS los demas que el robot se movio para que actualicen su pantalla 3D
-            for (WebSocketSession sesionDestino : sesionesActivas) {
-                // Filtramos para NO rebotarle el mensaje a quien lo origino
-                if (sesionDestino.isOpen() && !sesionDestino.getId().equals(session.getId())) {
-                    sesionDestino.sendMessage(new TextMessage(payloadJson));
+            //MOVIMIENTO MANUAL PUNTO A PUNTO
+            if ("MANUAL".equals(payload.getTipo())) {
+                double b  = payload.getAngulos().getBase();
+                double s  = payload.getAngulos().getShoulder();
+                double e  = payload.getAngulos().getElbow();
+                double w1 = payload.getAngulos().getWrist1();
+                double w2 = payload.getAngulos().getWrist2();
+                double w3 = payload.getAngulos().getWrist3();
+
+                if (esMovimientoSeguro(b, s, e)) {
+                    //Guarda la posicion en la que se encientre el brazo en la bd
+                    brazoDAO.actualizarPosicion(idBrazo, objectMapper.writeValueAsString(payload.getAngulos()));
+                    
+                    // Verificamos si hay un rboto conectado
+                    try {
+                        robotCliente.enviarComando(new double[]{b, s, e, w1, w2, w3});
+                    } catch (Exception ex) {
+                        // Si no hay robot, solo avisamos que continuamos en modo simulacion 
+                        System.out.println("[Modo Simulacion] Movimiento virtual guardado. Hardware offline: " + ex.getMessage());
+                    }
+
+                    //Sincronixar en tiempo real la web
+                    broadcast(session, payloadJson);
+                } else {
+                    System.err.println("[Seguridad] Movimiento bloqueado. Hombro=" + s + ", Codo=" + e);
                 }
+            }
+
+            //TRAYECTORIA COMPLETA
+            else if ("MACRO".equals(payload.getTipo())) {
+                /*cada paso de la secuencia se broadcast
+                individualmente con su ángulo real, sincronizando las
+                pantallas 3D en tiempo real durante toda la trayectoria.*/
+                new Thread(() -> {
+                    try {
+                        for (Angulos paso : payload.getSecuencia()) {
+                            double[] angulosArray = {
+                                paso.getBase(), paso.getShoulder(), paso.getElbow(),
+                                paso.getWrist1(), paso.getWrist2(), paso.getWrist3()
+                            };
+                            robotCliente.enviarComando(angulosArray);
+
+                            // Construir el JSON de este paso para sincronizar otras pantallas
+                            Estado estadoPaso = new Estado();
+                            estadoPaso.setTipo("MANUAL"); //Para mandar a llamar lo que guardamos en la bd es MANUAL 
+                            estadoPaso.setId_brazo(idBrazo);
+                            estadoPaso.setAngulos(paso);
+                            String pasojson = objectMapper.writeValueAsString(estadoPaso);
+                            broadcast(session, pasojson);
+
+                            Thread.sleep(1000);
+                        }
+                    } catch (InterruptedException ex) {
+                        Thread.currentThread().interrupt();
+                    } catch (Exception ex) {
+                        System.err.println("[WebSocket] Error durante ejecucion MACRO: " + ex.getMessage());
+                    }
+                }).start();
             }
 
         } catch (Exception e) {
             System.err.println("[WebSocket] Error procesando telemetría: " + e.getMessage());
         }
+    }
+
+//METODS AUXILIARES 
+    private void broadcast(WebSocketSession origen, String json) {
+        synchronized (sesionesActivas) {
+            for (WebSocketSession destino : sesionesActivas) {
+                try {
+                    if (destino.isOpen() && !destino.getId().equals(origen.getId())) {
+                        destino.sendMessage(new TextMessage(json));
+                    }
+                } catch (Exception e) {
+                    System.err.println("[WebSocket] Error en broadcast a sesión " + destino.getId() + ": " + e.getMessage());
+                }
+            }
+        }
+    }
+
+    private boolean esMovimientoSeguro(double base, double shoulder, double elbow) {
+        if (shoulder < -180.0 || shoulder > 0.0) 
+            return false;
+        if (elbow < -150.0 || elbow > 150.0) 
+            return false;
+        return true;
     }
 }
