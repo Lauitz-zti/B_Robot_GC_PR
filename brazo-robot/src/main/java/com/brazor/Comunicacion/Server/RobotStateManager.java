@@ -8,11 +8,9 @@ public class RobotStateManager {
     private String clienteIPcont = null; //IP del cliente que actualmente tiene el control exclusivo
     private long cmdAccepTime = 0;//ultimo comando aceptado
     
-    private DataBaseService db; //A donde va diirigir los datos
     private UdpSender udp; // Nuevo
 
-    public RobotStateManager(DataBaseService db, UdpSender udp) { //Almacena los dats para persistir el estado
-        this.db = db;
+    public RobotStateManager(UdpSender udp) { //Almacena los dats para persistir el estado
         this.udp = udp;
     }
 
