@@ -13,6 +13,9 @@ import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.Map;
+
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
@@ -21,6 +24,8 @@ import java.util.Set;
 public class BrazoSocketHandler extends TextWebSocketHandler {
 
     private static final Set<WebSocketSession> sesionesActivas = Collections.synchronizedSet(new HashSet<>());
+
+    private static final Map<Integer, String> brazoOcupado = new ConcurrentHashMap<>(); //para la concurrencia 
 
     private final BrazoDAO brazoDAO;
     private final ObjectMapper objectMapper;
@@ -32,7 +37,6 @@ public class BrazoSocketHandler extends TextWebSocketHandler {
         this.objectMapper = new ObjectMapper();
         this.firebaseAuth = firebaseAuth;
         this.robotCliente = robotCliente;
-        this.robotCliente.conectar();
     }
 
 
@@ -55,7 +59,7 @@ public class BrazoSocketHandler extends TextWebSocketHandler {
             System.out.println("[WebSocket] Gemelo Digital autorizado para: " + decodedToken.getEmail());
 
         } catch (Exception e) {
-            System.err.println("[Seguridad] Conexión WebSocket rechazada: " + e.getMessage());
+            System.err.println("[Seguridad] Conexion WebSocket rechazada: " + e.getMessage());
             session.close(CloseStatus.NOT_ACCEPTABLE);
         }
     }
@@ -63,6 +67,9 @@ public class BrazoSocketHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
         sesionesActivas.remove(session);
+
+        //Si un usuario se desconecta, buscamos que brazo tenia y lo liberamos
+        brazoOcupado.entrySet().removeIf(entry -> entry.getValue().equals(session.getId())); 
         System.out.println("[WebSocket] Gemelo Digital desconectado. ID Sesion: " + session.getId());
     }
 
@@ -73,8 +80,28 @@ public class BrazoSocketHandler extends TextWebSocketHandler {
             Estado payload = objectMapper.readValue(payloadJson, Estado.class);
             int idBrazo = payload.getId_brazo();
 
+        //Verificacion inicial de red al cargar la pagina
+            if ("INIT".equals(payload.getTipo())) {
+
+                if (brazoOcupado.containsKey(idBrazo) && !brazoOcupado.get(idBrazo).equals(session.getId())){
+                    System.out.println();
+
+                    session.sendMessage(new TextMessage("{\"tipo\":\"ERROR\", \"mensaje\":\"OCUPADO\"}"));
+                    session.close(CloseStatus.NOT_ACCEPTABLE);
+                    return;    
+
+                }
+                
+                //Si el ur esta libre, damos acceso y bloqueamos acceso a otras sesiones
+                brazoOcupado.put(idBrazo, session.getId());
+                robotCliente.conectar(idBrazo);
+            }
             //MOVIMIENTO MANUAL PUNTO A PUNTO
-            if ("MANUAL".equals(payload.getTipo())) {
+            else if ("MANUAL".equals(payload.getTipo())) {
+
+                if(!session.getId().equals(brazoOcupado.get(idBrazo))){
+                    return;
+                }
                 double b  = payload.getAngulos().getBase();
                 double s  = payload.getAngulos().getShoulder();
                 double e  = payload.getAngulos().getElbow();
@@ -88,7 +115,7 @@ public class BrazoSocketHandler extends TextWebSocketHandler {
                     
                     // Verificamos si hay un rboto conectado
                     try {
-                        robotCliente.enviarComando(new double[]{b, s, e, w1, w2, w3});
+                        robotCliente.enviarComando(idBrazo,new double[]{b, s, e, w1, w2, w3});
                     } catch (Exception ex) {
                         // Si no hay robot, solo avisamos que continuamos en modo simulacion 
                         System.out.println("[Modo Simulacion] Movimiento virtual guardado. Hardware offline: " + ex.getMessage());
@@ -113,7 +140,7 @@ public class BrazoSocketHandler extends TextWebSocketHandler {
                                 paso.getBase(), paso.getShoulder(), paso.getElbow(),
                                 paso.getWrist1(), paso.getWrist2(), paso.getWrist3()
                             };
-                            robotCliente.enviarComando(angulosArray);
+                            robotCliente.enviarComando(idBrazo,angulosArray);
 
                             // Construir el JSON de este paso para sincronizar otras pantallas
                             Estado estadoPaso = new Estado();

@@ -2,13 +2,20 @@ package com.brazor.Comunicacion.WebServer;
 
 import java.io.OutputStream;
 import java.net.Socket;
+
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service; //Crea un microservicio de red
+
+import com.brazor.webapp.DAOs.PuenteHDAO;
 
 @Service
 public class RobotCliente {
 
-    private final String ipBrazo = "192.168.100.251"; //ip del rob ur3e 
-    private final int puerto = 30003;  // puerto para enviar comandos de movimiento directamente al controlador
+    @Value("${ROBOT_HOST:192.168.100.251}")
+    private String ipBrazo; 
+
+    @Value("${ROBOT_PORT:30003}")
+    private int puerto;
 
     private Socket socket; //conexion tcp
     private OutputStream out; //envio de datos
@@ -16,7 +23,13 @@ public class RobotCliente {
     // Variable para registrar la hora de los fallos y evitar saturar el hilo
     private long ultimoIntento = 0;
 
-    public synchronized void conectar() {
+    private final PuenteHDAO puenteHDAO;
+
+    public RobotCliente(PuenteHDAO puenteHDAO) {
+        this.puenteHDAO = puenteHDAO;
+    }
+
+    public synchronized void conectar(int idBrazo) {
         try {
             // Si y tenemos un socket abierto, retornamos
             if (socket != null && !socket.isClosed()) 
@@ -37,21 +50,25 @@ public class RobotCliente {
             
             out = socket.getOutputStream();
             System.out.println("[RobotCliente] Conexion establecida con el brazo UR3e en " + ipBrazo + ":" + puerto);
+
+            puenteHDAO.registrarConexion(idBrazo, ipBrazo);
             
         } catch (Exception e) {
             //el robot no se encuentra conectado, seguimos en la simulacion (la web)
             System.out.println("[Modo Simulacion] Hardware offline. Siguiente chequeo de red en 5s.");
             socket = null;
             out = null;
+
+            puenteHDAO.marcarDesconectado(idBrazo);
         }
     }
 
     /* traducimos los comandos de la aplicacioon web al lenguaje que entiende el robot,
     */
-    public synchronized void enviarComando(double[] angulos) {
+    public synchronized void enviarComando(int idBrazo, double[] angulos) {
         //evaluamos la conexion 
         if (socket == null || socket.isClosed() || !socket.isConnected()) {
-            conectar(); 
+            conectar(idBrazo); 
         }
         //Si seguimo sin conexion al ur3e cancelamos la operacion 
         if (socket == null || !socket.isConnected()) {
@@ -74,6 +91,8 @@ public class RobotCliente {
             try { if (socket != null) socket.close(); } catch (Exception ignored) {}
             socket = null;
             out = null;
+
+            puenteHDAO.marcarDesconectado(idBrazo);
         }
     }
 
