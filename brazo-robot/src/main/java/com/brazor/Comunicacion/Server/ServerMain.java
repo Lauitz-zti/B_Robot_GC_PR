@@ -7,15 +7,11 @@ public class ServerMain {
     public static void main(String[] args) throws IOException {
         System.out.println("Iniciando Servidor...");
 
-        //Inicializar bd
-        DataBaseService db = new DataBaseService();
-        db.init();
-
         //Puerto 6000 para broadcast
         UdpSender udpSender = new UdpSender(6000);
 
         // Iniciar el Gestor de Estado (Cerebro)
-        RobotStateManager stateManager = new RobotStateManager(db, udpSender);
+        RobotStateManager stateManager = new RobotStateManager(udpSender);
 
         //Iniciar Servidor Sockets
         TcpServer tcpServer = new TcpServer(5000, stateManager); 
