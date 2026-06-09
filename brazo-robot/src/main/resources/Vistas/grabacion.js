@@ -10,7 +10,7 @@ function inicializarGrabadora() {
     const btnPlay = document.getElementById('btnPlayRutina');
     const contador = document.getElementById('contadorFrames');
     const selectRutinas = document.getElementById('selectRutinas');
-    const baseUrl = "https://brobotgcpr-production.up.railway.app/";
+    const baseUrl = "https://brobotgcpr-production.up.railway.app";
 
     //CAPTURAR UN PASO (FRAME)
     btnCapturar.addEventListener('click', () => {

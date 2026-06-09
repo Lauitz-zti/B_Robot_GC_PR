@@ -139,7 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
         inicializarEntorno3D('contenedor3D');
     }
 
-    const baseUrl = "https://brobotgcpr-production.up.railway.app/";
+    const baseUrl = "https://brobotgcpr-production.up.railway.app";
     fetch(`${baseUrl}/api/brazo/estado/${idDinamico}`)
         .then(res => res.json())
         .then(datos => {
