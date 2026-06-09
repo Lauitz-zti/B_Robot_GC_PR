@@ -89,12 +89,42 @@ public class BrazoSocketHandler extends TextWebSocketHandler {
                     session.sendMessage(new TextMessage("{\"tipo\":\"ERROR\", \"mensaje\":\"OCUPADO\"}"));
                     session.close(CloseStatus.NOT_ACCEPTABLE);
                     return;    
-
                 }
+                brazoOcupado.put(idBrazo, session.getId());//Si el ur esta libre, damos acceso y bloqueamos acceso a otras sesiones
                 
-                //Si el ur esta libre, damos acceso y bloqueamos acceso a otras sesiones
-                brazoOcupado.put(idBrazo, session.getId());
-                robotCliente.conectar(idBrazo);
+                try {
+                    // Intentamos conectar con el hardware fisico
+                    robotCliente.conectar(idBrazo);
+                    
+                    System.out.println("[Hardware] Robot UR3e detectado. Ejecutando postura HOME.");
+                    
+                    double[] homeFisico = {0.0, -90.0, 90.0, -90.0, -90.0, 0.0}; //establecemos la posicion segura en la visualizacion
+                    robotCliente.enviarComando(idBrazo, homeFisico);
+                    
+                    Angulos angulosHome = new Angulos();
+                    angulosHome.setBase(homeFisico[0]);
+                    angulosHome.setShoulder(homeFisico[1]);
+                    angulosHome.setElbow(homeFisico[2]);
+                    angulosHome.setWrist1(homeFisico[3]);
+                    angulosHome.setWrist2(homeFisico[4]);
+                    angulosHome.setWrist3(homeFisico[5]);
+                    
+                    String jsonHome = objectMapper.writeValueAsString(angulosHome);// Guardamos la postura HOME en la base de datos
+                    brazoDAO.actualizarPosicion(idBrazo, jsonHome);
+                    
+                    //Forzamos a la web a actualizar sus sliders y el modelo 3D
+                    Estado estadoHome = new Estado();
+                    estadoHome.setTipo("MANUAL"); 
+                    estadoHome.setId_brazo(idBrazo);
+                    estadoHome.setAngulos(angulosHome);
+                    
+                    String payloadHome = objectMapper.writeValueAsString(estadoHome);
+                    session.sendMessage(new TextMessage(payloadHome)); 
+                    broadcast(session, payloadHome);
+
+                } catch (Exception ex) {
+                    System.out.println("[Modo Simulacion] Hardware offline: " + ex.getMessage());
+                }
             }
             //MOVIMIENTO MANUAL PUNTO A PUNTO
             else if ("MANUAL".equals(payload.getTipo())) {
@@ -159,7 +189,6 @@ public class BrazoSocketHandler extends TextWebSocketHandler {
                     }
                 }).start();
             }
-
         } catch (Exception e) {
             System.err.println("[WebSocket] Error procesando telemetría: " + e.getMessage());
         }
