@@ -22,29 +22,30 @@ const badgeConexion = document.getElementById('badgeConexion');
 socket.onopen = () => {
     console.log("Conectado al servidor de alta velocidad.");
     badgeConexion.className = "badge bg-success fs-6 py-2 px-3 rounded-pill shadow-sm";
-    badgeConexion.innerText = "En Línea (WS)";
-    // Registra la IP real en la base de datos al abrir la sesion
-    fetch('/api/puente/conectar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id_brazo: parseInt(idDinamico) })
-    }).catch(err => console.error("Error registrando IP:", err));
+    badgeConexion.innerText = "En Línea";
+
+    socket.send(JSON.stringify({ //esto es para varificar de donde viene la señal de movimiento si de la web o de del ur
+        tipo: "INIT",
+        id_brazo: parseInt(idDinamico),
+        angulos: { base:0, shoulder:0, elbow:0, wrist1:0, wrist2:0, wrist3:0 } // Mandamos ceros para que Java no marque error
+    }));
+
 };
 
 socket.onclose = () => {
     badgeConexion.className = "badge bg-danger fs-6 py-2 px-3 rounded-pill shadow-sm";
     badgeConexion.innerText = "Desconectado";
-
-    // Apaga el estado en la base de datos cuando se cierra la sesion
-    fetch('/api/puente/desconectar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id_brazo: parseInt(idDinamico) })
-    }).catch(err => console.error("Error marcando desconexión:", err));
 };
 
 socket.onmessage = (evento) => {
     const payload = JSON.parse(evento.data);
+
+    //PARA LA CONCURRENCIA
+    if(payload.tipo == "ERROR" & payload.mensaje == "OCUPADO"){
+        alert("ACCESO DENEGADO: Ya esta siendo controlado y monitoreado por otro Operador")
+        localStorage.removeItem("brazoActivo");
+        window.location.replace("panel.html");
+    }
 
     if (payload.id_brazo === parseInt(idDinamico)) {
         if (payload.angulos) {
@@ -138,7 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
         inicializarEntorno3D('contenedor3D');
     }
 
-    const baseUrl = window.location.origin;
+    const baseUrl = "https://brobotgcpr-production.up.railway.app/";
     fetch(`${baseUrl}/api/brazo/estado/${idDinamico}`)
         .then(res => res.json())
         .then(datos => {
@@ -150,16 +151,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 document.getElementById('btnCerrarSesion').addEventListener('click', async () => {
-    //Avisar del cierre
-    try {
-        await fetch('/api/puente/desconectar', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id_brazo: parseInt(idDinamico) })
-        });
-    } catch (error) {
-        console.error("No se pudo avisar al servidor", error);
-    }
     
     localStorage.removeItem("brazoActivo");
     localStorage.removeItem("firebaseToken");

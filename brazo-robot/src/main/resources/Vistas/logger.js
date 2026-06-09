@@ -34,7 +34,7 @@ function inicializarLogger() {
         btnGuardar.disabled = true;
 
         //Avisamos que hicimos cambios
-        const baseUrl = window.location.origin;
+        const baseUrl = "https://brobotgcpr-production.up.railway.app/"; //Necesario pq lo subimos a un servidor ya no estamos desde local
         fetch(`${baseUrl}/api/logger/registrar`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
