@@ -27,7 +27,12 @@ socket.onopen = () => {
     socket.send(JSON.stringify({ //esto es para varificar de donde viene la señal de movimiento si de la web o de del ur
         tipo: "INIT",
         id_brazo: parseInt(idDinamico),
-        angulos: { base:0, shoulder:0, elbow:0, wrist1:0, wrist2:0, wrist3:0 } // Mandamos ceros para que Java no marque error
+        base:     parseFloat(document.getElementById('rangoBase').value) || 0,
+            shoulder: parseFloat(document.getElementById('rangoShoulder').value) || 0,
+            elbow:    parseFloat(document.getElementById('rangoElbow').value) || 0,
+            wrist1:   parseFloat(document.getElementById('rangoWrist1').value) || 0,
+            wrist2:   parseFloat(document.getElementById('rangoWrist2').value) || 0,
+            wrist3:   parseFloat(document.getElementById('rangoWrist3').value) || 0
     }));
 
 };

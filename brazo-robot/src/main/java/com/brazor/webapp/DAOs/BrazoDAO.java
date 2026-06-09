@@ -22,8 +22,14 @@ public class BrazoDAO {
         try {
             //Actualizamos la posicion actual (El tiempo real)
             String sqlUpdate = "UPDATE estado_actual SET angulos_jsonb = ?::jsonb, fecha_update = CURRENT_TIMESTAMP WHERE id_brazo = ?";
-            jdbcTemplate.update(sqlUpdate, jsonAngulos, idBrazo);
-            //Ya no usarmos el historial por ahora, pero lo dejamos preparado para futuras mejoras
+            int filasAfectadas = jdbcTemplate.update(sqlUpdate, jsonAngulos, idBrazo);
+            
+            // Si el brazo es nuevo, lo insertamos
+            if (filasAfectadas == 0) {
+                System.out.println("Creando estado inicial para brazo: " + idBrazo);
+                String sqlInsert = "INSERT INTO estado_actual (id_brazo, angulos_jsonb, fuente, fecha_update) VALUES (?, CAST(? AS jsonb), 'WEB', CURRENT_TIMESTAMP)";
+                jdbcTemplate.update(sqlInsert, idBrazo, jsonAngulos);
+            }
             return true;
         } catch (Exception e) {
             System.err.println("Error al actualizar telemetria: " + e.getMessage());
